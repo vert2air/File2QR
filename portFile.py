@@ -10,6 +10,13 @@ import tempfile
 from PIL import ImageTk
 import zipfile
 
+def makeSimpleQR( str, err_cor ) :
+    qr = qrcode.QRCode( error_correction = err_cor, box_size = 2, border = 8)
+    qr.add_data( str )
+    qr.make()
+    im = qr.make_image( fill_color = 'black', back_color = 'white' )
+    return [ ImageTk.PhotoImage( im ) ]
+
 def outputQR( ix, qrHead, b64, fm, to, err_cor ) :
     print( '[ {}, {} ]'.format( fm, to ) )
     qr = qrcode.QRCode( error_correction = err_cor, box_size = 2, border = 8)
@@ -95,6 +102,9 @@ img = None
 img_next = 0
 canvas = None
 lbl_qrno = None
+bln_direct = None
+chk_direct = None
+txt_direct = None
 
 def file_btn_click() :
     global txt_fn
@@ -129,6 +139,8 @@ def qrcode_btn_click() :
     global errCorrTab
     global canvas
     global txt_qrno
+    global bln_direct
+    global txt_direct
     global img
 
     val = None
@@ -137,7 +149,9 @@ def qrcode_btn_click() :
             val = v
             break
     img = []
-    if not bln_zip.get() :
+    if bln_direct.get() :
+        img = makeSimpleQR( txt_direct.get(), val )
+    elif not bln_zip.get() :
         img = makeQR( txt_fn.get(), val )
     else :
         with tempfile.TemporaryDirectory() as tmpDn :
@@ -175,6 +189,9 @@ def gui() :
     global chk_zip
     global opt_err_var
     global errCorrTab
+    global bln_direct
+    global chk_direct
+    global txt_direct
 
     root = tkinter.Tk()
     root.geometry( '300x200' )
@@ -193,8 +210,16 @@ def gui() :
                                     text='input after ZIP compression' )
     chk_zip.place( x=100, y=40 )
 
+    bln_direct = tkinter.BooleanVar()
+    bln_direct.set( False )
+    chk_direct = tkinter.Checkbutton( root, variable= bln_direct,
+                                    text='Input Direct Text' )
+    chk_direct.place( x=10, y=70 )
+    txt_direct = tkinter.Entry( width=27 )
+    txt_direct.place( x=125, y=70 )
+
     lbl_fm = tkinter.Label( text='Error Correct' )
-    lbl_fm.place( x=25, y=70 )
+    lbl_fm.place( x=25, y=100 )
     opt_err_var = tkinter.StringVar( root )
     OptionList = []
     for _, attr in errCorrTab :
@@ -204,7 +229,7 @@ def gui() :
     opt_err = tkinter.OptionMenu( root, opt_err_var, *OptionList )
     opt_err.config( width= 25 )
     opt_err.pack()
-    opt_err.place( x=100, y= 70 )
+    opt_err.place( x=100, y= 100 )
 
     btn = tkinter.Button( root,
                 text='Display QR codes', command= qrcode_btn_click )
