@@ -92,7 +92,8 @@ def mergeBase64( ifn ) :
                 break
             sum += cts[ str( i ) ]
         if sum != '' :
-            with open( ofn, 'wb' ) as of :
+            dir = os.path.dirname( ifn )
+            with open( os.path.join( dir, ofn ), 'wb' ) as of :
                 of.write( base64.b64decode( sum ) )
 
 txt_fn = None
