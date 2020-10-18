@@ -104,7 +104,7 @@ img = None
 img_next = 0
 canvas = None
 lbl_qrno = None
-int_inMethod = None
+str_inMethod = None
 chk_direct = None
 txt_direct = None
 btn_dec = None
@@ -142,7 +142,7 @@ def qrcode_btn_click() :
     global errCorrTab
     global canvas
     global txt_qrno
-    global int_inMethod
+    global str_inMethod
     global txt_direct
     global img
 
@@ -152,7 +152,7 @@ def qrcode_btn_click() :
             val = v
             break
     img = []
-    if int_inMethod.get() == 1 :
+    if str_inMethod.get() == 'text' :
         img = makeSimpleQR( txt_direct.get(), val )
     elif not bln_zip.get() :
         img = makeQR( txt_fn.get(), val )
@@ -187,9 +187,9 @@ def decode_btn_click() :
     mergeBase64( txt_fn.get() )
 
 def inMethChange() :
-    global int_inMethod
+    global str_inMethod
     global btn_dec
-    if int_inMethod.get() == 1 :
+    if str_inMethod.get() == 'text' :
         btn_dec.configure( state = 'disabled' )
     else :
         btn_dec.configure( state = 'normal' )
@@ -200,7 +200,7 @@ def gui() :
     global chk_zip
     global opt_err_var
     global errCorrTab
-    global int_inMethod
+    global str_inMethod
     global rad_direct
     global txt_direct
     global btn_dec
@@ -231,11 +231,11 @@ def gui() :
     frm_in_txt = Tk.Frame( frm_in, relief = 'flat' )
     frm_in_txt.pack( side = Tk.TOP )
 
-    int_inMethod = Tk.IntVar()
-    int_inMethod.set( 0 )
+    str_inMethod = Tk.StringVar()
+    str_inMethod.set( 'file' )
 
     rad_fn = Tk.Radiobutton( frm_in_file, text='File Name',
-                variable = int_inMethod, value = 0, command = inMethChange )
+            variable = str_inMethod, value = 'file', command = inMethChange )
     rad_fn.pack( side = Tk.LEFT )
     txt_fn = Tk.Entry( frm_in_file, width = 40 )
     txt_fn.pack( side = Tk.LEFT )
@@ -249,7 +249,7 @@ def gui() :
     chk_zip.pack( side = Tk.LEFT )
 
     rad_direct = Tk.Radiobutton( frm_in_txt, text='Direct Text',
-                variable = int_inMethod, value = 1, command = inMethChange )
+            variable = str_inMethod, value = 'text', command = inMethChange )
     rad_direct.pack( side = Tk.LEFT )
     txt_direct = Tk.Entry( frm_in_txt, width = 48 )
     txt_direct.pack( side = Tk.LEFT )
