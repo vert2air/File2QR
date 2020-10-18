@@ -107,6 +107,7 @@ lbl_qrno = None
 int_inMethod = None
 chk_direct = None
 txt_direct = None
+btn_dec = None
 
 def file_btn_click() :
     global txt_fn
@@ -185,6 +186,14 @@ def decode_btn_click() :
     global txt_fn
     mergeBase64( txt_fn.get() )
 
+def inMethChange() :
+    global int_inMethod
+    global btn_dec
+    if int_inMethod.get() == 1 :
+        btn_dec.configure( state = 'disabled' )
+    else :
+        btn_dec.configure( state = 'normal' )
+
 def gui() :
     global txt_fn
     global bln_zip
@@ -194,6 +203,7 @@ def gui() :
     global int_inMethod
     global rad_direct
     global txt_direct
+    global btn_dec
 
     root = Tk.Tk()
     root.geometry( '420x200' )
@@ -225,7 +235,7 @@ def gui() :
     int_inMethod.set( 0 )
 
     rad_fn = Tk.Radiobutton( frm_in_file, text='File Name',
-                                variable = int_inMethod, value = 0 )
+                variable = int_inMethod, value = 0, command = inMethChange )
     rad_fn.pack( side = Tk.LEFT )
     txt_fn = Tk.Entry( frm_in_file, width = 40 )
     txt_fn.pack( side = Tk.LEFT )
@@ -235,11 +245,11 @@ def gui() :
     bln_zip = Tk.BooleanVar()
     bln_zip.set( False )
     chk_zip = Tk.Checkbutton( frm_in_zip, variable= bln_zip,
-                                    text='input after ZIP compression' )
+                                    text='with ZIP compression' )
     chk_zip.pack( side = Tk.LEFT )
 
     rad_direct = Tk.Radiobutton( frm_in_txt, text='Direct Text',
-                                variable = int_inMethod, value = 1 )
+                variable = int_inMethod, value = 1, command = inMethChange )
     rad_direct.pack( side = Tk.LEFT )
     txt_direct = Tk.Entry( frm_in_txt, width = 48 )
     txt_direct.pack( side = Tk.LEFT )
@@ -262,9 +272,9 @@ def gui() :
     btn = Tk.Button( frm_out_qr, text='Display QR codes', command= qrcode_btn_click )
     btn.pack( side = Tk.TOP )
 
-    btn_dc = Tk.Button( frm_out_dec,
-                text='Decode base64 file', command= decode_btn_click )
-    btn_dc.pack( side = Tk.LEFT )
+    btn_dec = Tk.Button( frm_out_dec,
+                text='Output Decoded file', command= decode_btn_click )
+    btn_dec.pack( side = Tk.LEFT )
 
     root.mainloop()
 
