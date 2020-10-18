@@ -5,7 +5,8 @@ import os
 import qrcode
 import re
 import sys
-import tkinter, tkinter.filedialog, tkinter.messagebox
+import tkinter as Tk
+import tkinter.filedialog, tkinter.messagebox
 import tempfile
 from PIL import ImageTk
 import zipfile
@@ -111,10 +112,10 @@ def file_btn_click() :
     global txt_fn
     fTyp = [ ('', '*') ]
     iDir = os.path.abspath( os.path.dirname( __file__ ) )
-    ifn = tkinter.filedialog.askopenfilename(
+    ifn = Tk.filedialog.askopenfilename(
                                 filetypes = fTyp, initialdir = iDir)
-    txt_fn.delete( 0, tkinter.END )
-    txt_fn.insert( tkinter.END, ifn )
+    txt_fn.delete( 0, Tk.END )
+    txt_fn.insert( Tk.END, ifn )
 
 def next_btn_click() :
     global canvas
@@ -124,7 +125,7 @@ def next_btn_click() :
     if img_next >= len( img ) :
         print( 'img_next error' )
         return
-    canvas.create_image( 0, 0, image = img[ img_next ], anchor= tkinter.NW )
+    canvas.create_image( 0, 0, image = img[ img_next ], anchor= Tk.NW )
     txt_qrno.set( '{} / 0 - {}'.format( img_next, len( img ) - 1 ) )
     img_next += 1
 
@@ -162,20 +163,20 @@ def qrcode_btn_click() :
                 zipF.write( txt_fn.get(), txt_fn.get() )
                 img = makeQR( tmpFn, val )
 
-    qrWin = tkinter.Toplevel()
+    qrWin = Tk.Toplevel()
     qrWin.geometry( '385x425' )
     qrWin.title('QR code')
-    btn_head = tkinter.Button( qrWin, text='<<', command= head_btn_click )
+    btn_head = Tk.Button( qrWin, text='<<', command= head_btn_click )
     btn_head.place( x=5, y=5 )
 
-    txt_qrno = tkinter.StringVar()
+    txt_qrno = Tk.StringVar()
     txt_qrno.set( '' )
-    lbl_qrno = tkinter.Label( qrWin, textvariable= txt_qrno )
+    lbl_qrno = Tk.Label( qrWin, textvariable= txt_qrno )
     lbl_qrno.place( x=100, y=5 )
 
-    btn_next = tkinter.Button( qrWin, text='>', command= next_btn_click )
+    btn_next = Tk.Button( qrWin, text='>', command= next_btn_click )
     btn_next.place( x=190, y=5 )
-    canvas = tkinter.Canvas( qrWin, bg = 'white', width= 385, height= 385 )
+    canvas = Tk.Canvas( qrWin, bg = 'white', width= 385, height= 385 )
     canvas.place( x = 0, y = 40 )
     head_btn_click()
     qrWin.mainloop()
@@ -194,53 +195,74 @@ def gui() :
     global chk_direct
     global txt_direct
 
-    root = tkinter.Tk()
-    root.geometry( '300x200' )
+    root = Tk.Tk()
+    root.geometry( '420x200' )
     root.title('Any File to QRcodes ')
 
-    lbl_fn = tkinter.Label( text='Input File Name' )
-    lbl_fn.place( x=10, y=10 )
-    txt_fn = tkinter.Entry( width=20 )
-    txt_fn.place( x=100, y=10 )
-    btn_fn = tkinter.Button( root, text='File name', command= file_btn_click )
-    btn_fn.place( x=230, y=10 )
+    frm_base = Tk.Frame( root, relief = 'flat' )
+    frm_base.pack()
 
-    bln_zip = tkinter.BooleanVar()
+    frm_in = Tk.LabelFrame( frm_base, text = 'Input',
+                   labelanchor = Tk.NW, relief = 'groove' )
+    frm_in.pack( fill = Tk.X )
+    frm_out = Tk.LabelFrame( frm_base, text = 'Output', relief = 'groove' )
+    frm_out.pack( side = Tk.LEFT )
+    frm_out_qr = Tk.LabelFrame( frm_out, text = 'QR Code',
+                   labelanchor = Tk.NW, relief = 'groove' )
+    frm_out_qr.pack( side = Tk.LEFT )
+    frm_out_dec = Tk.LabelFrame( frm_out, text = 'Decode base64',
+                   labelanchor = Tk.NW, relief = 'groove' )
+    frm_out_dec.pack( side = Tk.LEFT )
+
+    frm_in_file = Tk.Frame( frm_in, relief = 'flat' )
+    frm_in_file.pack( side = Tk.TOP )
+    frm_in_zip = Tk.Frame( frm_in, relief = 'flat' )
+    frm_in_zip.pack( side = Tk.TOP )
+    frm_in_txt = Tk.Frame( frm_in, relief = 'flat' )
+    frm_in_txt.pack( side = Tk.TOP )
+
+    lbl_fn = Tk.Label( frm_in_file, text='File Name' )
+    lbl_fn.pack( side = Tk.LEFT )
+    txt_fn = Tk.Entry( frm_in_file, width=20 )
+    txt_fn.pack( side = Tk.LEFT )
+    btn_fn = Tk.Button( frm_in_file, text='Open...', command= file_btn_click )
+    btn_fn.pack( side = Tk.LEFT )
+
+    bln_zip = Tk.BooleanVar()
     bln_zip.set( False )
-    chk_zip = tkinter.Checkbutton( root, variable= bln_zip,
+    chk_zip = Tk.Checkbutton( frm_in_zip, variable= bln_zip,
                                     text='input after ZIP compression' )
-    chk_zip.place( x=100, y=40 )
+    chk_zip.pack( side = Tk.LEFT )
 
-    bln_direct = tkinter.BooleanVar()
+    bln_direct = Tk.BooleanVar()
     bln_direct.set( False )
-    chk_direct = tkinter.Checkbutton( root, variable= bln_direct,
-                                    text='Input Direct Text' )
-    chk_direct.place( x=10, y=70 )
-    txt_direct = tkinter.Entry( width=27 )
-    txt_direct.place( x=125, y=70 )
+    chk_direct = Tk.Checkbutton( frm_in_txt, variable= bln_direct,
+                                    text='Direct Text' )
+    chk_direct.pack( side = Tk.LEFT )
+    txt_direct = Tk.Entry( frm_in_txt, width=27 )
+    txt_direct.pack( side = Tk.LEFT )
 
-    lbl_fm = tkinter.Label( text='Error Correct' )
-    lbl_fm.place( x=25, y=100 )
-    opt_err_var = tkinter.StringVar( root )
+    frm_err = Tk.Frame( frm_out_qr, relief = 'flat' )
+    frm_err.pack( side = Tk.TOP )
+    lbl_fm = Tk.Label( frm_err, text='Error Correct' )
+    lbl_fm.pack( side = Tk.LEFT )
+    opt_err_var = Tk.StringVar( root )
     OptionList = []
     for _, attr in errCorrTab :
         _, desc = attr
         OptionList.append( desc )
     opt_err_var.set( OptionList[ 0 ] )
-    opt_err = tkinter.OptionMenu( root, opt_err_var, *OptionList )
+    opt_err = Tk.OptionMenu( frm_err, opt_err_var, *OptionList )
     opt_err.config( width= 25 )
     opt_err.pack()
-    opt_err.place( x=100, y= 100 )
+    opt_err.pack( side = Tk.LEFT )
 
-    btn = tkinter.Button( root,
-                text='Display QR codes', command= qrcode_btn_click )
-    btn.place( x=15, y=170 )
+    btn = Tk.Button( frm_out_qr, text='Display QR codes', command= qrcode_btn_click )
+    btn.pack( side = Tk.TOP )
 
-    btn_dc = tkinter.Button( root,
+    btn_dc = Tk.Button( frm_out_dec,
                 text='Decode base64 file', command= decode_btn_click )
-    btn_dc.place( x=180, y=170 )
-
-    root.bind( '<Return>', lambda event: btn_click() )
+    btn_dc.pack( side = Tk.LEFT )
 
     root.mainloop()
 
