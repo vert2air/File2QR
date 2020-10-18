@@ -104,7 +104,7 @@ img = None
 img_next = 0
 canvas = None
 lbl_qrno = None
-bln_direct = None
+int_inMethod = None
 chk_direct = None
 txt_direct = None
 
@@ -141,7 +141,7 @@ def qrcode_btn_click() :
     global errCorrTab
     global canvas
     global txt_qrno
-    global bln_direct
+    global int_inMethod
     global txt_direct
     global img
 
@@ -151,7 +151,7 @@ def qrcode_btn_click() :
             val = v
             break
     img = []
-    if bln_direct.get() :
+    if int_inMethod.get() == 1 :
         img = makeSimpleQR( txt_direct.get(), val )
     elif not bln_zip.get() :
         img = makeQR( txt_fn.get(), val )
@@ -191,8 +191,8 @@ def gui() :
     global chk_zip
     global opt_err_var
     global errCorrTab
-    global bln_direct
-    global chk_direct
+    global int_inMethod
+    global rad_direct
     global txt_direct
 
     root = Tk.Tk()
@@ -221,8 +221,12 @@ def gui() :
     frm_in_txt = Tk.Frame( frm_in, relief = 'flat' )
     frm_in_txt.pack( side = Tk.TOP )
 
-    lbl_fn = Tk.Label( frm_in_file, text='File Name' )
-    lbl_fn.pack( side = Tk.LEFT )
+    int_inMethod = Tk.IntVar()
+    int_inMethod.set( 0 )
+
+    rad_fn = Tk.Radiobutton( frm_in_file, text='File Name',
+                                variable = int_inMethod, value = 0 )
+    rad_fn.pack( side = Tk.LEFT )
     txt_fn = Tk.Entry( frm_in_file, width=20 )
     txt_fn.pack( side = Tk.LEFT )
     btn_fn = Tk.Button( frm_in_file, text='Open...', command= file_btn_click )
@@ -234,11 +238,9 @@ def gui() :
                                     text='input after ZIP compression' )
     chk_zip.pack( side = Tk.LEFT )
 
-    bln_direct = Tk.BooleanVar()
-    bln_direct.set( False )
-    chk_direct = Tk.Checkbutton( frm_in_txt, variable= bln_direct,
-                                    text='Direct Text' )
-    chk_direct.pack( side = Tk.LEFT )
+    rad_direct = Tk.Radiobutton( frm_in_txt, text='Direct Text',
+                                variable = int_inMethod, value = 1 )
+    rad_direct.pack( side = Tk.LEFT )
     txt_direct = Tk.Entry( frm_in_txt, width=27 )
     txt_direct.pack( side = Tk.LEFT )
 
