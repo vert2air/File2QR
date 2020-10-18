@@ -227,7 +227,7 @@ def gui() :
     rad_fn = Tk.Radiobutton( frm_in_file, text='File Name',
                                 variable = int_inMethod, value = 0 )
     rad_fn.pack( side = Tk.LEFT )
-    txt_fn = Tk.Entry( frm_in_file, width=20 )
+    txt_fn = Tk.Entry( frm_in_file, width = 40 )
     txt_fn.pack( side = Tk.LEFT )
     btn_fn = Tk.Button( frm_in_file, text='Open...', command= file_btn_click )
     btn_fn.pack( side = Tk.LEFT )
@@ -241,7 +241,7 @@ def gui() :
     rad_direct = Tk.Radiobutton( frm_in_txt, text='Direct Text',
                                 variable = int_inMethod, value = 1 )
     rad_direct.pack( side = Tk.LEFT )
-    txt_direct = Tk.Entry( frm_in_txt, width=27 )
+    txt_direct = Tk.Entry( frm_in_txt, width = 48 )
     txt_direct.pack( side = Tk.LEFT )
 
     frm_err = Tk.Frame( frm_out_qr, relief = 'flat' )
