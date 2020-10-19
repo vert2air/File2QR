@@ -1,4 +1,3 @@
-
 import base64
 import hashlib
 import os
@@ -97,17 +96,19 @@ def mergeBase64( ifn ) :
             with open( os.path.join( dir, ofn ), 'wb' ) as of :
                 of.write( base64.b64decode( sum ) )
 
+btn_fn = None
 txt_fn = None
 bln_zip = None
+chk_zip = None
 opt_err_var = None
-img = None
-img_next = 0
-canvas = None
-lbl_qrno = None
 str_inMethod = None
 chk_direct = None
 txt_direct = None
 btn_dec = None
+img = None
+img_next = 0
+canvas = None
+lbl_qrno = None
 
 def file_btn_click() :
     global txt_fn
@@ -188,20 +189,32 @@ def decode_btn_click() :
 
 def inMethChange() :
     global str_inMethod
+    global btn_fn
+    global txt_fn
+    global chk_zip
     global btn_dec
+    global txt_direct
     if str_inMethod.get() == 'text' :
+        btn_fn.configure( state = 'disabled' )
+        txt_fn.configure( state = 'disabled' )
+        chk_zip.configure( state = 'disabled' )
         btn_dec.configure( state = 'disabled' )
+        txt_direct.configure( state = 'normal' )
     else :
+        btn_fn.configure( state = 'normal' )
+        txt_fn.configure( state = 'normal' )
+        chk_zip.configure( state = 'normal' )
         btn_dec.configure( state = 'normal' )
+        txt_direct.configure( state = 'disabled' )
 
 def gui() :
+    global btn_fn
     global txt_fn
     global bln_zip
     global chk_zip
     global opt_err_var
     global errCorrTab
     global str_inMethod
-    global rad_direct
     global txt_direct
     global btn_dec
 
@@ -212,16 +225,13 @@ def gui() :
     frm_base = Tk.Frame( root, relief = 'flat' )
     frm_base.pack()
 
-    frm_in = Tk.LabelFrame( frm_base, text = 'Input',
-                   labelanchor = Tk.NW, relief = 'groove' )
+    frm_in = Tk.LabelFrame( frm_base, text = 'Input' )
     frm_in.pack( fill = Tk.X )
-    frm_out = Tk.LabelFrame( frm_base, text = 'Output', relief = 'groove' )
+    frm_out = Tk.LabelFrame( frm_base, text = 'Output' )
     frm_out.pack( side = Tk.LEFT )
-    frm_out_qr = Tk.LabelFrame( frm_out, text = 'QR Code',
-                   labelanchor = Tk.NW, relief = 'groove' )
+    frm_out_qr = Tk.LabelFrame( frm_out, text = 'QR Code' )
     frm_out_qr.pack( side = Tk.LEFT )
-    frm_out_dec = Tk.LabelFrame( frm_out, text = 'Decode base64',
-                   labelanchor = Tk.NW, relief = 'groove' )
+    frm_out_dec = Tk.LabelFrame( frm_out, text = 'Decode base64' )
     frm_out_dec.pack( side = Tk.LEFT )
 
     frm_in_file = Tk.Frame( frm_in, relief = 'flat' )
@@ -269,14 +279,16 @@ def gui() :
     opt_err.pack()
     opt_err.pack( side = Tk.LEFT )
 
-    btn = Tk.Button( frm_out_qr, text='Display QR codes', command= qrcode_btn_click )
+    btn = Tk.Button( frm_out_qr,
+                text='Display QR codes', command= qrcode_btn_click )
     btn.pack( side = Tk.TOP )
 
     btn_dec = Tk.Button( frm_out_dec,
                 text='Output Decoded file', command= decode_btn_click )
     btn_dec.pack( side = Tk.LEFT )
 
+    inMethChange()
     root.mainloop()
 
-gui()
-
+if __name__ == '__main__' :
+    gui()
