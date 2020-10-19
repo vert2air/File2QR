@@ -102,13 +102,11 @@ bln_zip = None
 chk_zip = None
 opt_err_var = None
 str_inMethod = None
-chk_direct = None
 txt_direct = None
 btn_dec = None
 img = None
 img_next = 0
 canvas = None
-lbl_qrno = None
 
 def file_btn_click() :
     global txt_fn
