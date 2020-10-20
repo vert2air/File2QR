@@ -104,8 +104,10 @@ opt_err_var = None
 str_inMethod = None
 txt_direct = None
 btn_dec = None
+btn_head = None
+btn_next = None
 img = None
-img_next = 0
+img_no = 0
 canvas = None
 
 def file_btn_click() :
@@ -117,22 +119,35 @@ def file_btn_click() :
     txt_fn.delete( 0, Tk.END )
     txt_fn.insert( Tk.END, ifn )
 
-def next_btn_click() :
+def disp_qr() :
     global canvas
     global img
-    global img_next
+    global img_no
     global txt_qrno
-    if img_next >= len( img ) :
-        print( 'img_next error' )
-        return
-    canvas.create_image( 0, 0, image = img[ img_next ], anchor= Tk.NW )
-    txt_qrno.set( '{} / 0 - {}'.format( img_next, len( img ) - 1 ) )
-    img_next += 1
+    global btn_head
+    global btn_next
+    canvas.create_image( 0, 0, image = img[ img_no ], anchor= Tk.NW )
+    txt_qrno.set( '{} / 0 - {}'.format( img_no, len( img ) - 1 ) )
+    if img_no == 0 :
+        btn_head.configure( state = 'disabled' )
+    else :
+        btn_head.configure( state = 'normal' )
+    if img_no + 1 == len( img ) :
+        btn_next.configure( state = 'disabled' )
+    else :
+        btn_next.configure( state = 'normal' )
+
+def next_btn_click() :
+    global img
+    global img_no
+    if img_no + 1 != len( img ) :
+        img_no += 1
+    disp_qr()
 
 def head_btn_click() :
-    global img_next
-    img_next = 0
-    next_btn_click()
+    global img_no
+    img_no = 0
+    disp_qr()
 
 def qrcode_btn_click() :
     global txt_fn
@@ -143,6 +158,8 @@ def qrcode_btn_click() :
     global txt_qrno
     global str_inMethod
     global txt_direct
+    global btn_head
+    global btn_next
     global img
 
     val = None
