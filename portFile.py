@@ -174,10 +174,9 @@ def qrcode_btn_click() :
         img = makeQR( txt_fn.get(), val )
     else :
         with tempfile.TemporaryDirectory() as tmpDn :
-            tmpFn = os.path.join( tmpDn, 'temp.zip' )
+            tmpFn = os.path.join( tmpDn, 'portFile.zip' )
             with zipfile.ZipFile( tmpFn, 'w', zipfile.ZIP_DEFLATED ) as zipF :
-                fn = os.path.basename( txt_fn.get() )
-                zipF.write( txt_fn.get(), fn )
+                zipF.write( txt_fn.get(), os.path.basename( txt_fn.get() ) )
             img = makeQR( tmpFn, val )
 
     qrWin = Tk.Toplevel()
