@@ -83,6 +83,7 @@ head_qr = re.compile(r'(\d\d\d):([^:]+):([+/\w]+=*)')
 def mergeBase64(ifn):
     qrDict = {}
     with open(ifn, 'r') as f:
+        # 入力データをhash値毎に仕分け
         for line in f:
             # 改行削除
             line = re.sub(r'\r?\n$', '', line)
@@ -96,22 +97,26 @@ def mergeBase64(ifn):
                 # 未未のhash値は、入れ物を用意する。
                 qrDict[hashVal] = {}
             qrDict[hashVal][int(m.group(2))] = m.group(3)
+    # hash値毎にファイル生成
     for hsh in qrDict:
         if 0 not in qrDict[hsh]:
+            # 先頭データが無いと、ファイル名もデータの個数も分からない
             continue
         m = head_qr.search(qrDict[hsh][0])
         if m is None:
-            # 総数 + ファイル名 で始まらなければ skip
+            # 先頭が、総数 + ファイル名 で始まらなければ skip
             print('discard hash : ' + hsh)
             continue
         ofn = m.group(2)
         frags = m.group(3)
         for i in range(1, int(m.group(1))):
             if i not in qrDict[hsh]:
-                print("lack frag idx: " + i)
+                # 不足データあり。捨てるしかない。
+                print(f"lack frag idx: hash={hsh}, idx={i}")
                 break
             frags += qrDict[hsh][i]
         else:
+            # 不足データは無かった。ファイルに書き出す。
             dir = os.path.dirname(ifn)
             with open(os.path.join(dir, ofn), 'wb') as of:
                 of.write(base64.b64decode(frags))
