@@ -33,70 +33,86 @@ errCorrTab = [
                                 ( 2331, 'M (15%, default) 2,331 byte' ) ),
     ( qrcode.constants.ERROR_CORRECT_Q, ( 1663, 'Q (25%) 1,663 byte' ) ),
     ( qrcode.constants.ERROR_CORRECT_H, ( 1272, 'H (30%) 1,272 byte' ) ) ]
-def makeQR( ifn, err_cor ) :
-    global errCorrTab
-    qrc = []
-    with open( ifn, 'rb' ) as f :
-        a = f.read()
-        b64 = base64.b64encode( a ).decode( 'utf-8' )
-        print( 'size = {}'.format( len( b64 ) ) )
-        csiz = None
-        for k, (s, _) in errCorrTab :
-            if k == err_cor :
-                csiz = s
-                break
-        basename = os.path.basename( ifn )
-        csiz -= len( 'abcd:01:10:{}:'.format( basename ) )
-        qrHash = hashlib.sha256( ( b64 + '{}'.format(err_cor) ).encode() ) \
-            .hexdigest()[0:4]
-        last = ( len( b64 ) + csiz - 1 ) // csiz
-        qrHeadFmt = qrHash + ':{:02}:' + '{:02}:{}:'.format( last, basename )
 
-        for i in range( 0, len( b64 ) - csiz + 1, csiz ) :
-            qrHead = qrHeadFmt.format( i // csiz )
-            q = outputQR( i // csiz, qrHead, b64, i, i + csiz, err_cor )
-            qrc.append( q )
-        if len( b64 ) % csiz != 0 :
-            ix = len( b64 ) // csiz
-            qrHead = qrHeadFmt.format( last - 1 )
-            q = outputQR( ix, qrHead, b64, ix * csiz, len( b64 ), err_cor )
-            qrc.append( q )
+
+def makeQR(ifn, err_cor):
+    '''
+    ifn: str ; QRコード化したいファイル名
+    err_cor: str ; QRコードのエラー訂正レベルのセレクタの記述
+    '''
+    global errCorrTab
+    capacity_per_qr = None
+    for k, (s, _) in errCorrTab:
+        if k == err_cor:
+            capacity_per_qr = s
+            break
+    qrc = []
+    with open(ifn, 'rb') as f:
+        basename = os.path.basename(ifn)
+        a = f.read()
+    # 転送すべきデータ: <ファイル名> ":" <base64データ>
+    fn_b64 = basename + ":" + base64.b64encode(a).decode('utf-8')
+    # 転送すべきデータのhash値
+    qrHash = hashlib.sha256(fn_b64.encode()).hexdigest()[0:8]
+    # QRコードが分割されることを想定して、識別用のhash値+通し番号header。
+    qrHeadFmt = qrHash + ':{:03}:'
+    # ヘッダ長を差し引き、QRコード1個で扱えるデータ長。
+    csiz = capacity_per_qr - len(qrHeadFmt)
+    # QRコードの総数情報まで含めたデータに対して、必要なQRコードの個数
+    qr_num = (3 + 1 + len(fn_b64) + csiz - 1) // csiz
+    # 分割を考慮しての総データ: <総数> ":" <ファイル名> ":" <base64データ>
+    cnt_fn_b64 = '{:03}:'.format(qr_num) + fn_b64
+
+    for i in range(0, qr_num - 1):
+        qrHead = qrHeadFmt.format(i)
+        q = outputQR(i, qrHead, cnt_fn_b64, i * csiz, (i + 1) * csiz, err_cor)
+        qrc.append(q)
+    ix = qr_num - 1
+    qrHead = qrHeadFmt.format(ix)
+    q = outputQR(ix, qrHead, cnt_fn_b64, ix * csiz, len(cnt_fn_b64), err_cor)
+    qrc.append(q)
     return qrc
 
-reg_qr = re.compile(
-        r'([\da-f][\da-f][\da-f][\da-f]):(\d\d):(\d\d):([^:]+):([+/\w]+=*)' )
-def mergeBase64( ifn ) :
-    global reg_qr
-    with open( ifn, 'r' ) as f :
-        hsh = None
-        tl = None
-        ofn = None
-        cts = {}
-        for line in f :
-            line = re.sub( r'\r?\n$', '', line )
-            m = reg_qr.search( line )
-            if m == None :
-                print( 'skip : ' + line )
+
+reg_qr = re.compile(r'([\da-f]{8}):(\d\d\d):(.*)')
+head_qr = re.compile(r'(\d\d\d):([^:]+):([+/\w]+=*)')
+
+
+def mergeBase64(ifn):
+    qrDict = {}
+    with open(ifn, 'r') as f:
+        for line in f:
+            # 改行削除
+            line = re.sub(r'\r?\n$', '', line)
+            m = reg_qr.search(line)
+            if m is None:
+                # hash + 通し番号 で始まらなければ skip
+                print('skip : ' + line)
                 continue
-            if hsh == None :
-                hsh = m.group( 1 )
-                tl = m.group( 3 )
-                ofn = m.group( 4 )
-            elif hsh != m.group( 1 ) or tl != m.group( 3 ) \
-                                    or ofn != m.group( 4 ) :
-                continue
-            cts[ str( int( m.group( 2 ) ) ) ] = m.group( 5 )
-        sum = ''
-        for i in range( int( tl ) ) :
-            if not str( i ) in cts :
-                sum = ''
-                print( 'Detects lack parts : {}'.format( i ) )
+            hashVal = m.group(1)
+            if hashVal not in qrDict:
+                # 未未のhash値は、入れ物を用意する。
+                qrDict[hashVal] = {}
+            qrDict[hashVal][int(m.group(2))] = m.group(3)
+    for hsh in qrDict:
+        if 0 not in qrDict[hsh]:
+            continue
+        m = head_qr.search(qrDict[hsh][0])
+        if m is None:
+            # 総数 + ファイル名 で始まらなければ skip
+            print('discard hash : ' + hsh)
+            continue
+        ofn = m.group(2)
+        frags = m.group(3)
+        for i in range(1, int(m.group(1))):
+            if i not in qrDict[hsh]:
+                print("lack frag idx: " + i)
                 break
-            sum += cts[ str( i ) ]
-        if sum != '' :
-            dir = os.path.dirname( ifn )
-            with open( os.path.join( dir, ofn ), 'wb' ) as of :
-                of.write( base64.b64decode( sum ) )
+            frags += qrDict[hsh][i]
+        else:
+            dir = os.path.dirname(ifn)
+            with open(os.path.join(dir, ofn), 'wb') as of:
+                of.write(base64.b64decode(frags))
 
 btn_fn = None
 txt_fn = None
