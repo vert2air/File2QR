@@ -155,11 +155,11 @@ def disp_qr():
     global btn_next
     canvas.create_image(0, 0, image=img[img_no], anchor=Tk.NW)
     txt_qrno.set('{} / 0 - {}'.format(img_no, len(img) - 1))
-    if img_no == 0:
+    if img_no < 1:
         btn_head.configure(state='disabled')
     else:
         btn_head.configure(state='normal')
-    if img_no + 1 == len(img):
+    if img_no + 1 >= len(img):
         btn_next.configure(state='disabled')
     else:
         btn_next.configure(state='normal')
@@ -168,7 +168,7 @@ def disp_qr():
 def next_btn_click():
     global img
     global img_no
-    if img_no + 1 != len(img):
+    if img_no + 1 < len(img):
         img_no += 1
     disp_qr()
 
