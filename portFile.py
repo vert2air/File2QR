@@ -122,15 +122,22 @@ def mergeBase64(ifn):
                 of.write(base64.b64decode(frags))
 
 
+# Any File to QRcodes window
+#  Input
 btn_fn = None
 txt_fn = None
 bln_zip = None
-chk_zip = None
-opt_err_var = None
-str_inMethod = None
+chk_zip = None  # checkbox
 txt_direct = None
+str_inMethod = None
+#   Output
+#     QR Code
+opt_err_var = None
+#     Decode base64
 btn_dec = None
+# QR code window
 btn_head = None
+btn_prev = None
 btn_next = None
 img = None
 img_no = 0
@@ -152,23 +159,33 @@ def disp_qr():
     global img_no
     global txt_qrno
     global btn_head
+    global btn_prev
     global btn_next
     canvas.create_image(0, 0, image=img[img_no], anchor=Tk.NW)
     txt_qrno.set('{} / 0 - {}'.format(img_no, len(img) - 1))
-    if img_no == 0:
+    if img_no < 1:
         btn_head.configure(state='disabled')
+        btn_prev.configure(state='disabled')
     else:
         btn_head.configure(state='normal')
-    if img_no + 1 == len(img):
+        btn_prev.configure(state='normal')
+    if img_no + 1 >= len(img):
         btn_next.configure(state='disabled')
     else:
         btn_next.configure(state='normal')
 
 
+def prev_btn_click():
+    global img_no
+    if img_no > 0:
+        img_no -= 1
+    disp_qr()
+
+
 def next_btn_click():
     global img
     global img_no
-    if img_no + 1 != len(img):
+    if img_no + 1 < len(img):
         img_no += 1
     disp_qr()
 
@@ -188,8 +205,7 @@ def qrcode_btn_click():
     global txt_qrno
     global str_inMethod
     global txt_direct
-    global btn_head
-    global btn_next
+    global btn_head, btn_prev, btn_next
     global img
 
     val = None
@@ -220,6 +236,8 @@ def qrcode_btn_click():
     lbl_qrno = Tk.Label(qrWin, textvariable=txt_qrno)
     lbl_qrno.place(x=100, y=5)
 
+    btn_prev = Tk.Button(qrWin, text='<', command=prev_btn_click)
+    btn_prev.place(x=35, y=5)
     btn_next = Tk.Button(qrWin, text='>', command=next_btn_click)
     btn_next.place(x=190, y=5)
     canvas = Tk.Canvas(qrWin, bg='white', width=385, height=385)
