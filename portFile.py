@@ -6,8 +6,8 @@ import os
 import qrcode
 import re
 import tkinter as Tk
-import tkinter.filedialog
-import tkinter.messagebox
+from tkinter import filedialog
+from tkinterdnd2 import TkinterDnD, DND_FILES
 import tempfile
 from PIL import ImageTk
 import zipfile
@@ -125,6 +125,7 @@ def mergeBase64(ifn):
 # Any File to QRcodes window
 #  Input
 btn_fn = None
+frm_txt_fn = None
 txt_fn = None
 bln_zip = None
 chk_zip = None  # checkbox
@@ -148,7 +149,7 @@ def file_btn_click():
     global txt_fn
     fTyp = [('', '*')]
     iDir = os.path.abspath(os.path.dirname(__file__))
-    ifn = Tk.filedialog.askopenfilename(filetypes=fTyp, initialdir=iDir)
+    ifn = filedialog.askopenfilename(filetypes=fTyp, initialdir=iDir)
     txt_fn.delete(0, Tk.END)
     txt_fn.insert(Tk.END, ifn)
 
@@ -272,8 +273,16 @@ def inMethChange():
         txt_direct.configure(state='disabled')
 
 
+def drop_fn(event=None):
+    if event:
+        file_paths = txt_fn.tk.splitlist(event.data)
+        txt_fn.delete(0, Tk.END)
+        txt_fn.insert(Tk.END, file_paths[0])
+
+
 def gui():
     global btn_fn
+    global frm_txt_fn
     global txt_fn
     global bln_zip
     global chk_zip
@@ -283,7 +292,7 @@ def gui():
     global txt_direct
     global btn_dec
 
-    root = Tk.Tk()
+    root = TkinterDnD.Tk()
     root.geometry('420x200')
     root.title('Any File to QRcodes ')
 
@@ -313,8 +322,12 @@ def gui():
                             variable=str_inMethod, value='file',
                             command=inMethChange)
     rad_fn.pack(side=Tk.LEFT)
+
     txt_fn = Tk.Entry(frm_in_file, width=40)
     txt_fn.pack(side=Tk.LEFT)
+    txt_fn.drop_target_register(DND_FILES)
+    txt_fn.dnd_bind('<<Drop>>', drop_fn)
+
     btn_fn = Tk.Button(frm_in_file, text='Open...', command=file_btn_click)
     btn_fn.pack(side=Tk.LEFT)
 
