@@ -6,8 +6,7 @@ import os
 import qrcode
 import re
 import tkinter as Tk
-import tkinter.filedialog
-import tkinter.messagebox
+from tkinter import filedialog
 import tempfile
 from PIL import ImageTk
 import zipfile
@@ -148,7 +147,7 @@ def file_btn_click():
     global txt_fn
     fTyp = [('', '*')]
     iDir = os.path.abspath(os.path.dirname(__file__))
-    ifn = Tk.filedialog.askopenfilename(filetypes=fTyp, initialdir=iDir)
+    ifn = filedialog.askopenfilename(filetypes=fTyp, initialdir=iDir)
     txt_fn.delete(0, Tk.END)
     txt_fn.insert(Tk.END, ifn)
 
