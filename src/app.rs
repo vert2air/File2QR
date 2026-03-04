@@ -35,7 +35,7 @@ fn setup_fonts(ctx: &egui::Context) {
         r"C:\Windows\Fonts\YuGothM.ttc",
         r"C:\Windows\Fonts\NotoSansCJK-Regular.ttc",
         // macOS
-        "/System/Library/Fonts/\u{30D2}\u{30E9}\u{30AE}\u{30CE}\u{89D2}\u{30B4}\u{30B7}\u{30C3}\u{30AF} W3.ttc",
+        "/System/Library/Fonts/ヒラギノ角ゴシック W3.ttc",
         "/System/Library/Fonts/Hiragino Sans GB.ttc",
         "/Library/Fonts/Arial Unicode MS.ttf",
         // Linux
@@ -62,7 +62,6 @@ fn setup_fonts(ctx: &egui::Context) {
                 .or_default()
                 .insert(0, "japanese".to_owned());
             loaded = true;
-            eprintln!("フォント読み込み成功: {}", path);
             break;
         }
     }

@@ -238,7 +238,16 @@ impl DecodePanel {
 
         // ── ステータス/エラー ──
         if let Some(ref msg) = self.status_msg {
-            ui.colored_label(egui::Color32::GREEN, format!("✅ {}", msg));
+            ui.horizontal(|ui| {
+                ui.colored_label(egui::Color32::GREEN, format!("✅ {}", msg));
+                
+                // ファイル復元成功時は出力フォルダを開くボタンを表示
+                if msg.contains("ファイルを復元") {
+                    if ui.button("📂 出力フォルダを開く").clicked() {
+                        self.open_output_folder();
+                    }
+                }
+            });
         }
         if let Some(ref err) = self.error_msg {
             ui.colored_label(egui::Color32::RED, format!("❌ {}", err));
@@ -363,6 +372,50 @@ impl DecodePanel {
             }
             OutputDir::CurrentDir => PathBuf::from(filename),
             OutputDir::Custom(dir) => PathBuf::from(dir).join(filename),
+        }
+    }
+
+    /// 出力フォルダをシステムのファイルマネージャーで開く
+    fn open_output_folder(&self) {
+        let folder_path = match &self.output_dir {
+            OutputDir::SameAsInput => {
+                if let Some(first) = self.input_files.first() {
+                    std::path::Path::new(first)
+                        .parent()
+                        .map(|p| p.to_path_buf())
+                        .unwrap_or_else(|| PathBuf::from("."))
+                } else {
+                    PathBuf::from(".")
+                }
+            }
+            OutputDir::Downloads => {
+                let home = std::env::var("HOME")
+                    .or_else(|_| std::env::var("USERPROFILE"))
+                    .unwrap_or_else(|_| ".".to_string());
+                PathBuf::from(home).join("Downloads")
+            }
+            OutputDir::CurrentDir => std::env::current_dir().unwrap_or_else(|_| PathBuf::from(".")),
+            OutputDir::Custom(dir) => PathBuf::from(dir),
+        };
+
+        // プラットフォーム別にフォルダを開く
+        #[cfg(target_os = "windows")]
+        {
+            let _ = std::process::Command::new("explorer")
+                .arg(folder_path)
+                .spawn();
+        }
+        #[cfg(target_os = "macos")]
+        {
+            let _ = std::process::Command::new("open")
+                .arg(folder_path)
+                .spawn();
+        }
+        #[cfg(target_os = "linux")]
+        {
+            let _ = std::process::Command::new("xdg-open")
+                .arg(folder_path)
+                .spawn();
         }
     }
 }

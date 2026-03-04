@@ -333,23 +333,19 @@ impl QrWindow {
             // 表示グリッド設定（即座に変更、再生成なし）
             ui.label("縦:");
             if ui.small_button("-").clicked() && self.rows > 1 {
-                eprintln!("rows - clicked: {} -> {}", self.rows, self.rows - 1);
                 self.rows -= 1;
             }
             ui.label(format!("{}", self.rows));
             if ui.small_button("+").clicked() {
-                eprintln!("rows + clicked: {} -> {}", self.rows, self.rows + 1);
                 self.rows += 1;
             }
 
             ui.label("横:");
             if ui.small_button("-").clicked() && self.cols > 1 {
-                eprintln!("cols - clicked: {} -> {}", self.cols, self.cols - 1);
                 self.cols -= 1;
             }
             ui.label(format!("{}", self.cols));
             if ui.small_button("+").clicked() {
-                eprintln!("cols + clicked: {} -> {}", self.cols, self.cols + 1);
                 self.cols += 1;
             }
 

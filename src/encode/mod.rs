@@ -24,13 +24,15 @@ impl EcLevel {
         }
     }
 
-    /// 仕様書記載の最大データ容量 (byte)
+    /// 仕様書記載の最大データ容量 (byte) - 実測に基づく安全値
     pub fn max_bytes(&self) -> usize {
+        // qrcodeクレートの実際の制限は理論値より若干小さいため、
+        // 安全マージンを確保（約5%減）
         match self {
-            EcLevel::L => 2953,
-            EcLevel::M => 2331,
-            EcLevel::Q => 1663,
-            EcLevel::H => 1272,
+            EcLevel::L => 2800,  // 理論値 2953
+            EcLevel::M => 2200,  // 理論値 2331
+            EcLevel::Q => 1580,  // 理論値 1663
+            EcLevel::H => 1210,  // 理論値 1272
         }
     }
 
@@ -109,7 +111,16 @@ pub fn encode(input: EncodeInput) -> Result<EncodeResult, String> {
             let end = ((i + 1) * qr_cap).min(qr_data_full.len());
             let chunk = &qr_data_full[start..end];
             // フラグメント番号は1オリジン（i+1）
-            format!("{}:{:0>3}:{}", hash_str, i + 1, chunk)
+            let fragment = format!("{}:{:0>3}:{}", hash_str, i + 1, chunk);
+            
+            // デバッグ: 長さを確認
+            if fragment.len() > input.ec_level.max_bytes() {
+                eprintln!("WARNING: Fragment {} 長さオーバー: {} > {} (max_bytes)", 
+                         i + 1, fragment.len(), input.ec_level.max_bytes());
+                eprintln!("  hash={}, index={}, chunk_len={}", hash_str, i + 1, chunk.len());
+            }
+            
+            fragment
         })
         .collect();
 

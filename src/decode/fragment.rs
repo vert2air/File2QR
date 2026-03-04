@@ -1,5 +1,2 @@
-/// ファイル内容からフラグメント行を抽出するユーティリティ
-
-pub fn extract_lines(content: &str) -> Vec<&str> {
-    content.lines().collect()
-}
+// decode/fragment.rs - フラグメント解析用の補助関数
+// 現在はmod.rsに統合されているため、このファイルは空でも動作します
