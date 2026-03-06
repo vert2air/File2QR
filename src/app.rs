@@ -1,5 +1,5 @@
+use crate::ui::{decode_panel::DecodePanel, encode_panel::EncodePanel};
 use eframe::egui;
-use crate::ui::{encode_panel::EncodePanel, decode_panel::DecodePanel};
 
 #[derive(PartialEq)]
 pub enum Tab {
@@ -77,18 +77,24 @@ impl eframe::App for App {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         egui::TopBottomPanel::top("tab_bar").show(ctx, |ui| {
             ui.horizontal(|ui| {
-                ui.selectable_value(&mut self.current_tab, Tab::Encode, "QRコード生成");
-                ui.selectable_value(&mut self.current_tab, Tab::Decode, "データ復元");
+                ui.selectable_value(
+                    &mut self.current_tab,
+                    Tab::Encode,
+                    "QRコード生成",
+                );
+                ui.selectable_value(
+                    &mut self.current_tab,
+                    Tab::Decode,
+                    "データ復元",
+                );
             });
         });
 
-        egui::CentralPanel::default().show(ctx, |ui| {
-            match self.current_tab {
-                Tab::Encode => self.encode_panel.show(ctx, ui),
-                Tab::Decode => self.decode_panel.show(ctx, ui),
-            }
+        egui::CentralPanel::default().show(ctx, |ui| match self.current_tab {
+            Tab::Encode => self.encode_panel.show(ctx, ui),
+            Tab::Decode => self.decode_panel.show(ctx, ui),
         });
-        
+
         // QRコード表示ウィンドウの更新（通常のWindow）
         if let Some(ref mut qr_win) = self.encode_panel.qr_window {
             qr_win.show(ctx);

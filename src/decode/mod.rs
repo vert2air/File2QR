@@ -1,6 +1,6 @@
 pub mod fragment;
 
-use base64::{engine::general_purpose::STANDARD, Engine as _};
+use base64::{Engine as _, engine::general_purpose::STANDARD};
 use percent_encoding::percent_decode_str;
 use std::collections::HashMap;
 
@@ -36,9 +36,7 @@ impl HashEntry {
     /// 不足しているフラグメントの番号を返す（1オリジン）
     pub fn missing_indices(&self) -> Vec<usize> {
         if let Some(total) = self.qr_num {
-            (1..=total)
-                .filter(|i| !self.fragments.contains_key(i))
-                .collect()
+            (1..=total).filter(|i| !self.fragments.contains_key(i)).collect()
         } else {
             vec![]
         }
@@ -61,7 +59,9 @@ pub fn parse_lines(lines: &[&str]) -> HashMap<String, HashEntry> {
 
             // 1番目のフラグメント（1オリジン）からメタ情報を抽出
             if frag.index == 1 {
-                if let Some((qr_num, filename, compressed)) = extract_meta(&frag.chunk) {
+                if let Some((qr_num, filename, compressed)) =
+                    extract_meta(&frag.chunk)
+                {
                     entry.qr_num = Some(qr_num);
                     entry.filename = Some(filename);
                     entry.compressed = Some(compressed);
@@ -81,16 +81,28 @@ fn parse_fragment_line(line: &str) -> Option<ParsedFragment> {
     let re_find = |s: &str| -> Option<(usize, usize)> {
         let bytes = s.as_bytes();
         'outer: for i in 0..s.len() {
-            if i + 8 >= s.len() { break; }
+            if i + 8 >= s.len() {
+                break;
+            }
             for j in 0..8 {
-                if !bytes[i + j].is_ascii_hexdigit() { continue 'outer; }
+                if !bytes[i + j].is_ascii_hexdigit() {
+                    continue 'outer;
+                }
             }
-            if bytes[i + 8] != b':' { continue; }
-            if i + 12 >= s.len() { continue; }
+            if bytes[i + 8] != b':' {
+                continue;
+            }
+            if i + 12 >= s.len() {
+                continue;
+            }
             for j in 0..3 {
-                if !bytes[i + 9 + j].is_ascii_digit() { continue 'outer; }
+                if !bytes[i + 9 + j].is_ascii_digit() {
+                    continue 'outer;
+                }
             }
-            if bytes[i + 12] != b':' { continue; }
+            if bytes[i + 12] != b':' {
+                continue;
+            }
             return Some((i, i + 13));
         }
         None
@@ -120,10 +132,8 @@ fn extract_meta(chunk: &str) -> Option<(usize, String, bool)> {
     let qr_num: usize = parts[0].parse().ok()?;
     let filename_enc = parts[1];
     let comp_flag = parts[2];
-    let filename = percent_decode_str(filename_enc)
-        .decode_utf8()
-        .ok()?
-        .to_string();
+    let filename =
+        percent_decode_str(filename_enc).decode_utf8().ok()?.to_string();
     let compressed = comp_flag == "xv";
     Some((qr_num, filename, compressed))
 }
@@ -131,7 +141,7 @@ fn extract_meta(chunk: &str) -> Option<(usize, String, bool)> {
 /// 完全なHashEntryからデータを復元
 pub fn reconstruct(entry: &HashEntry) -> Result<Vec<u8>, String> {
     let qr_num = entry.qr_num.ok_or("QRコード数が不明")?;
-    
+
     let mut qr_data = String::new();
     for i in 1..=qr_num {
         let chunk = entry

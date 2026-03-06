@@ -1,6 +1,6 @@
 pub mod app;
-pub mod ui;
-pub mod encode;
 pub mod decode;
+pub mod encode;
+pub mod ui;
 
 pub use app::App;

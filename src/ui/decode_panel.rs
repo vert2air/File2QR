@@ -1,7 +1,7 @@
+use crate::decode::{self, HashEntry};
 use eframe::egui;
 use std::collections::HashMap;
 use std::path::PathBuf;
-use crate::decode::{self, HashEntry};
 
 /// 出力先ディレクトリの選択肢
 #[derive(PartialEq, Clone)]
@@ -72,7 +72,9 @@ impl DecodePanel {
                     .hint_text("ファイルパス（Enterで追加）")
                     .desired_width(480.0),
             );
-            if ui.button("追加").clicked() || ui.input(|i| i.key_pressed(egui::Key::Enter)) {
+            if ui.button("追加").clicked()
+                || ui.input(|i| i.key_pressed(egui::Key::Enter))
+            {
                 self.add_file(self.file_path_input.clone());
                 self.file_path_input.clear();
             }
@@ -118,67 +120,69 @@ impl DecodePanel {
 
         // ── 解析結果一覧 ──
         if self.entries.is_empty() {
-            ui.label("（入力ファイルを指定するとここに解析結果が表示されます）");
+            ui.label(
+                "（入力ファイルを指定するとここに解析結果が表示されます）",
+            );
         } else {
             ui.label("🔍 解析結果:");
-            egui::ScrollArea::vertical()
-                .max_height(220.0)
-                .show(ui, |ui| {
-                    let hashes: Vec<String> = self.entries.keys().cloned().collect();
-                    for hash in &hashes {
-                        let entry = &self.entries[hash];
-                        let complete = entry.is_complete();
-                        let missing = entry.missing_indices();
+            egui::ScrollArea::vertical().max_height(220.0).show(ui, |ui| {
+                let hashes: Vec<String> =
+                    self.entries.keys().cloned().collect();
+                for hash in &hashes {
+                    let entry = &self.entries[hash];
+                    let complete = entry.is_complete();
+                    let missing = entry.missing_indices();
 
-                        ui.group(|ui| {
-                            ui.horizontal(|ui| {
-                                let mut selected = self.selected_hashes.contains(hash);
-                                let enabled = complete;
-                                ui.add_enabled(
-                                    enabled,
-                                    egui::Checkbox::new(&mut selected, ""),
-                                );
-                                if enabled {
-                                    if selected {
-                                        self.selected_hashes.insert(hash.clone());
-                                    } else {
-                                        self.selected_hashes.remove(hash);
-                                    }
+                    ui.group(|ui| {
+                        ui.horizontal(|ui| {
+                            let mut selected =
+                                self.selected_hashes.contains(hash);
+                            let enabled = complete;
+                            ui.add_enabled(
+                                enabled,
+                                egui::Checkbox::new(&mut selected, ""),
+                            );
+                            if enabled {
+                                if selected {
+                                    self.selected_hashes.insert(hash.clone());
+                                } else {
+                                    self.selected_hashes.remove(hash);
                                 }
-
-                                ui.label(format!("hash: {}", hash));
-                            });
-
-                            // ファイル名
-                            let fname = entry
-                                .filename
-                                .clone()
-                                .unwrap_or("(unknown)".to_string());
-                            ui.label(format!("  ファイル名: {}", fname));
-
-                            // 圧縮フラグ
-                            let compress_str = match entry.compressed {
-                                Some(true) => "ON",
-                                Some(false) => "OFF",
-                                None => "--",
-                            };
-                            ui.label(format!("  xz圧縮: {}", compress_str));
-
-                            // 不足フラグメント
-                            if missing.is_empty() {
-                                ui.colored_label(egui::Color32::GREEN, "  ✅ 全フラグメント揃っています");
-                            } else {
-                                ui.colored_label(
-                                    egui::Color32::YELLOW,
-                                    format!(
-                                        "  ⚠ 不足フラグメント: {:?}",
-                                        missing
-                                    ),
-                                );
                             }
+
+                            ui.label(format!("hash: {}", hash));
                         });
-                    }
-                });
+
+                        // ファイル名
+                        let fname = entry
+                            .filename
+                            .clone()
+                            .unwrap_or("(unknown)".to_string());
+                        ui.label(format!("  ファイル名: {}", fname));
+
+                        // 圧縮フラグ
+                        let compress_str = match entry.compressed {
+                            Some(true) => "ON",
+                            Some(false) => "OFF",
+                            None => "--",
+                        };
+                        ui.label(format!("  xz圧縮: {}", compress_str));
+
+                        // 不足フラグメント
+                        if missing.is_empty() {
+                            ui.colored_label(
+                                egui::Color32::GREEN,
+                                "  ✅ 全フラグメント揃っています",
+                            );
+                        } else {
+                            ui.colored_label(
+                                egui::Color32::YELLOW,
+                                format!("  ⚠ 不足フラグメント: {:?}", missing),
+                            );
+                        }
+                    });
+                }
+            });
         }
 
         ui.separator();
@@ -216,7 +220,8 @@ impl DecodePanel {
                 if ui.button("📂 選択...").clicked() {
                     if let Some(dir) = rfd::FileDialog::new().pick_folder() {
                         self.custom_dir = dir.to_string_lossy().to_string();
-                        self.output_dir = OutputDir::Custom(self.custom_dir.clone());
+                        self.output_dir =
+                            OutputDir::Custom(self.custom_dir.clone());
                     }
                 }
             });
@@ -229,7 +234,8 @@ impl DecodePanel {
         if ui
             .add_enabled(
                 can_decode,
-                egui::Button::new("💾 選択したデータを復元").min_size(egui::vec2(200.0, 36.0)),
+                egui::Button::new("💾 選択したデータを復元")
+                    .min_size(egui::vec2(200.0, 36.0)),
             )
             .clicked()
         {
@@ -240,10 +246,11 @@ impl DecodePanel {
         if let Some(ref msg) = self.status_msg {
             ui.horizontal(|ui| {
                 ui.colored_label(egui::Color32::GREEN, format!("✅ {}", msg));
-                
+
                 // ファイル復元成功時は出力フォルダを開くボタンを表示
                 if msg.contains("ファイルを復元") {
-                    if ui.button("📂 出力フォルダを開く").clicked() {
+                    if ui.button("📂 出力フォルダを開く").clicked()
+                    {
                         self.open_output_folder();
                     }
                 }
@@ -257,15 +264,17 @@ impl DecodePanel {
         if let Some(ref text) = self.decoded_text.clone() {
             ui.separator();
             ui.label("📝 復元されたテキスト:");
-            egui::ScrollArea::vertical()
-                .max_height(150.0)
-                .show(ui, |ui| {
-                    ui.add(
-                        egui::TextEdit::multiline(self.decoded_text.as_mut().unwrap_or(&mut String::new()))
-                            .desired_width(f32::INFINITY)
-                            .interactive(false),
-                    );
-                });
+            egui::ScrollArea::vertical().max_height(150.0).show(ui, |ui| {
+                ui.add(
+                    egui::TextEdit::multiline(
+                        self.decoded_text
+                            .as_mut()
+                            .unwrap_or(&mut String::new()),
+                    )
+                    .desired_width(f32::INFINITY)
+                    .interactive(false),
+                );
+            });
             let _ = text;
         }
     }
@@ -291,8 +300,10 @@ impl DecodePanel {
                     all_lines.extend(content.lines().map(|l| l.to_string()));
                 }
                 Err(e) => {
-                    self.error_msg =
-                        Some(format!("ファイル読み込みエラー ({}): {}", path, e));
+                    self.error_msg = Some(format!(
+                        "ファイル読み込みエラー ({}): {}",
+                        path, e
+                    ));
                 }
             }
         }
@@ -316,32 +327,35 @@ impl DecodePanel {
 
             match decode::reconstruct(entry) {
                 Ok(data) => {
-                    let filename = entry
-                        .filename
-                        .clone()
-                        .unwrap_or("output".to_string());
+                    let filename =
+                        entry.filename.clone().unwrap_or("output".to_string());
 
                     if filename == "(direct_text)" {
                         // テキスト領域に表示
                         match String::from_utf8(data) {
                             Ok(text) => self.decoded_text = Some(text),
                             Err(e) => {
-                                self.error_msg = Some(format!("UTF-8変換エラー: {}", e));
+                                self.error_msg =
+                                    Some(format!("UTF-8変換エラー: {}", e));
                             }
                         }
                     } else {
                         // ファイルに出力
                         let out_path = self.resolve_output_path(&filename);
                         if let Err(e) = std::fs::write(&out_path, &data) {
-                            self.error_msg =
-                                Some(format!("ファイル書き込みエラー ({}): {}", out_path.display(), e));
+                            self.error_msg = Some(format!(
+                                "ファイル書き込みエラー ({}): {}",
+                                out_path.display(),
+                                e
+                            ));
                         } else {
                             success_count += 1;
                         }
                     }
                 }
                 Err(e) => {
-                    self.error_msg = Some(format!("復元エラー ({}): {}", hash, e));
+                    self.error_msg =
+                        Some(format!("復元エラー ({}): {}", hash, e));
                 }
             }
         }
@@ -350,7 +364,10 @@ impl DecodePanel {
             if self.decoded_text.is_some() {
                 self.status_msg = Some("テキストを復元しました".to_string());
             } else {
-                self.status_msg = Some(format!("{}件のファイルを復元しました", success_count));
+                self.status_msg = Some(format!(
+                    "{}件のファイルを復元しました",
+                    success_count
+                ));
             }
         }
     }
@@ -360,14 +377,16 @@ impl DecodePanel {
             OutputDir::SameAsInput => {
                 // 最初の入力ファイルのディレクトリを使う
                 if let Some(first) = self.input_files.first() {
-                    if let Some(parent) = std::path::Path::new(first).parent() {
+                    if let Some(parent) = std::path::Path::new(first).parent()
+                    {
                         return parent.join(filename);
                     }
                 }
                 PathBuf::from(filename)
             }
             OutputDir::Downloads => {
-                let home = std::env::var("HOME").unwrap_or_else(|_| ".".to_string());
+                let home =
+                    std::env::var("HOME").unwrap_or_else(|_| ".".to_string());
                 PathBuf::from(home).join("Downloads").join(filename)
             }
             OutputDir::CurrentDir => PathBuf::from(filename),
@@ -394,7 +413,9 @@ impl DecodePanel {
                     .unwrap_or_else(|_| ".".to_string());
                 PathBuf::from(home).join("Downloads")
             }
-            OutputDir::CurrentDir => std::env::current_dir().unwrap_or_else(|_| PathBuf::from(".")),
+            OutputDir::CurrentDir => {
+                std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."))
+            }
             OutputDir::Custom(dir) => PathBuf::from(dir),
         };
 
@@ -407,9 +428,8 @@ impl DecodePanel {
         }
         #[cfg(target_os = "macos")]
         {
-            let _ = std::process::Command::new("open")
-                .arg(folder_path)
-                .spawn();
+            let _ =
+                std::process::Command::new("open").arg(folder_path).spawn();
         }
         #[cfg(target_os = "linux")]
         {

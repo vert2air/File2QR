@@ -1,6 +1,6 @@
-use qrcodegen::{QrCode, QrCodeEcc, QrSegment, Version};
-use image::{GrayImage, Luma};
 use crate::encode::EcLevel;
+use image::{GrayImage, Luma};
+use qrcodegen::{QrCode, QrCodeEcc, QrSegment, Version};
 
 /// QRコードをビットマップから直接、指定scaleで正方形ピクセル画像として生成
 /// qrcodegen使用、Byteモード強制
@@ -18,7 +18,7 @@ pub fn generate_qr_image(
 
     // Byteモードのセグメントを明示的に作成
     let seg = QrSegment::make_bytes(data.as_bytes());
-    
+
     // QRコード生成（Byteモードのみ使用）
     let code = QrCode::encode_segments_advanced(
         &[seg],
@@ -26,27 +26,28 @@ pub fn generate_qr_image(
         Version::new(1),  // 最小Version 1
         Version::new(40), // 最大Version 40
         None,             // マスクパターン自動選択
-        true              // 最適化有効
-    ).map_err(|e| format!("QRコード生成エラー: {:?}", e))?;
+        true,             // 最適化有効
+    )
+    .map_err(|e| format!("QRコード生成エラー: {:?}", e))?;
 
     // QRコードのサイズを取得
     let width = code.size() as usize;
-    
+
     // quiet_zone (余白) を追加 - 通常4モジュール分
     let quiet_zone = 4;
     let total_width = width + quiet_zone * 2;
-    
+
     // scale倍の画像サイズ
     let img_width = total_width * scale as usize;
     let img_height = total_width * scale as usize;
-    
+
     let mut img = GrayImage::new(img_width as u32, img_height as u32);
-    
+
     // 全体を白で初期化
     for pixel in img.pixels_mut() {
         *pixel = Luma([255u8]);
     }
-    
+
     // QRコードのビットマップを描画
     for y in 0..width {
         for x in 0..width {
@@ -54,7 +55,7 @@ pub fn generate_qr_image(
                 // 黒モジュール - scale x scale の正方形を描画
                 let px_start = (x + quiet_zone) * scale as usize;
                 let py_start = (y + quiet_zone) * scale as usize;
-                
+
                 for dy in 0..scale as usize {
                     for dx in 0..scale as usize {
                         let px = px_start + dx;
@@ -67,7 +68,7 @@ pub fn generate_qr_image(
             }
         }
     }
-    
+
     Ok(img)
 }
 
@@ -81,8 +82,5 @@ pub fn to_egui_image(img: &GrayImage) -> egui::ColorImage {
             egui::Color32::from_gray(v)
         })
         .collect();
-    egui::ColorImage {
-        size: [w as usize, h as usize],
-        pixels,
-    }
+    egui::ColorImage { size: [w as usize, h as usize], pixels }
 }
