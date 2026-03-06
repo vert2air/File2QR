@@ -91,7 +91,7 @@ impl QrWindow {
     }
 
     pub fn total_pages(&self) -> usize {
-        (self.fragments.len() + self.per_page() - 1) / self.per_page()
+        self.fragments.len().div_ceil(self.per_page())
     }
 
     /// 現在ページのフラグメントインデックス範囲

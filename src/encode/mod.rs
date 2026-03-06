@@ -91,15 +91,12 @@ pub fn encode(input: EncodeInput) -> Result<EncodeResult, String> {
 
     // 7. QRコード数の計算
     let qr_cap = input.ec_level.qr_cap();
-    // qr_dataの全体サイズを計算
-    let qr_data_full = format!("{:0>3}:{}", 999, &hash_data); // 最大数で計算
-    let qr_data_base_len = qr_data_full.len() - 3; // "999"を除いた長さ
 
     // 実際に必要なQRコード数を計算
     // 各フラグメントは "hash:NNN:chunk" の形式
     // hash(8) + :(1) + NNN(3) + :(1) = 13文字は固定
     // chunk部分の最大長 = qr_cap
-    let qr_num = (hash_data.len() + qr_cap - 1) / qr_cap; // ceil除算
+    let qr_num = hash_data.len().div_ceil(qr_cap);
 
     // 8. qr_data 作成（実際のqr_numで）
     let qr_data_full = format!("{:0>3}:{}", qr_num, &hash_data);

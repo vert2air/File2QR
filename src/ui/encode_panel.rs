@@ -119,28 +119,28 @@ impl EncodePanel {
             // ドラッグ&ドロップ
             if response.hovered() {
                 ctx.input(|i| {
-                    if let Some(path) = i.raw.dropped_files.first() {
-                        if let Some(p) = &path.path {
-                            self.file_path = p.to_string_lossy().to_string();
-                        }
+                    if let Some(path) = i.raw.dropped_files.first()
+                        && let Some(p) = &path.path
+                    {
+                        self.file_path = p.to_string_lossy().to_string();
                     }
                 });
             }
 
-            if ui.button("📂 選択...").clicked() {
-                if let Some(path) = rfd::FileDialog::new().pick_file() {
-                    self.file_path = path.to_string_lossy().to_string();
-                }
+            if ui.button("📂 選択...").clicked()
+                && let Some(path) = rfd::FileDialog::new().pick_file()
+            {
+                self.file_path = path.to_string_lossy().to_string();
             }
         });
 
         // グローバルなD&Dも受け付ける
         ctx.input(|i| {
-            if let Some(path) = i.raw.dropped_files.first() {
-                if let Some(p) = &path.path {
-                    self.file_path = p.to_string_lossy().to_string();
-                    self.error_msg = None;
-                }
+            if let Some(path) = i.raw.dropped_files.first()
+                && let Some(p) = &path.path
+            {
+                self.file_path = p.to_string_lossy().to_string();
+                self.error_msg = None;
             }
         });
     }

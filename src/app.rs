@@ -49,7 +49,7 @@ fn setup_fonts(ctx: &egui::Context) {
         if let Ok(data) = std::fs::read(path) {
             fonts.font_data.insert(
                 "japanese".to_owned(),
-                egui::FontData::from_owned(data).into(),
+                egui::FontData::from_owned(data),
             );
             fonts
                 .families

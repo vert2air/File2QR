@@ -78,11 +78,11 @@ impl DecodePanel {
                 self.add_file(self.file_path_input.clone());
                 self.file_path_input.clear();
             }
-            if ui.button("📂 選択...").clicked() {
-                if let Some(paths) = rfd::FileDialog::new().pick_files() {
-                    for p in paths {
-                        self.add_file(p.to_string_lossy().to_string());
-                    }
+            if ui.button("📂 選択...").clicked()
+                && let Some(paths) = rfd::FileDialog::new().pick_files()
+            {
+                for p in paths {
+                    self.add_file(p.to_string_lossy().to_string());
                 }
             }
         });
@@ -217,12 +217,12 @@ impl DecodePanel {
                         .hint_text("出力ディレクトリのパス")
                         .desired_width(400.0),
                 );
-                if ui.button("📂 選択...").clicked() {
-                    if let Some(dir) = rfd::FileDialog::new().pick_folder() {
-                        self.custom_dir = dir.to_string_lossy().to_string();
-                        self.output_dir =
-                            OutputDir::Custom(self.custom_dir.clone());
-                    }
+                if ui.button("📂 選択...").clicked()
+                    && let Some(dir) = rfd::FileDialog::new().pick_folder()
+                {
+                    self.custom_dir = dir.to_string_lossy().to_string();
+                    self.output_dir =
+                        OutputDir::Custom(self.custom_dir.clone());
                 }
             });
         }
@@ -248,11 +248,10 @@ impl DecodePanel {
                 ui.colored_label(egui::Color32::GREEN, format!("✅ {}", msg));
 
                 // ファイル復元成功時は出力フォルダを開くボタンを表示
-                if msg.contains("ファイルを復元") {
-                    if ui.button("📂 出力フォルダを開く").clicked()
-                    {
-                        self.open_output_folder();
-                    }
+                if msg.contains("ファイルを復元")
+                    && ui.button("📂 出力フォルダを開く").clicked()
+                {
+                    self.open_output_folder();
                 }
             });
         }
@@ -376,11 +375,10 @@ impl DecodePanel {
         match &self.output_dir {
             OutputDir::SameAsInput => {
                 // 最初の入力ファイルのディレクトリを使う
-                if let Some(first) = self.input_files.first() {
-                    if let Some(parent) = std::path::Path::new(first).parent()
-                    {
-                        return parent.join(filename);
-                    }
+                if let Some(first) = self.input_files.first()
+                    && let Some(parent) = std::path::Path::new(first).parent()
+                {
+                    return parent.join(filename);
                 }
                 PathBuf::from(filename)
             }

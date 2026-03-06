@@ -58,14 +58,13 @@ pub fn parse_lines(lines: &[&str]) -> HashMap<String, HashEntry> {
                 .or_insert_with(|| HashEntry::new(&frag.hash));
 
             // 1番目のフラグメント（1オリジン）からメタ情報を抽出
-            if frag.index == 1 {
-                if let Some((qr_num, filename, compressed)) =
+            if frag.index == 1
+                && let Some((qr_num, filename, compressed)) =
                     extract_meta(&frag.chunk)
-                {
-                    entry.qr_num = Some(qr_num);
-                    entry.filename = Some(filename);
-                    entry.compressed = Some(compressed);
-                }
+            {
+                entry.qr_num = Some(qr_num);
+                entry.filename = Some(filename);
+                entry.compressed = Some(compressed);
             }
 
             entry.fragments.insert(frag.index, frag.chunk);
