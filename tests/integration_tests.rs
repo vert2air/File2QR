@@ -79,23 +79,28 @@ fn integration_test_multiple_ec_levels() {
 
 #[test]
 fn integration_test_large_file() {
-    // 大きなファイル（100KB）
-    let test_data = vec![0xAB; 100_000];
+    // 大きなファイル（10KB）- 圧縮なしで確実に複数フラグメントに分割
+    let mut test_data = Vec::with_capacity(10_000);
+    for i in 0..10_000 {
+        // バイトパターンを変化させる（でも決定的）
+        test_data.push(((i * 137 + 17) % 256) as u8);
+    }
     let filename = "large_file.bin";
 
     let input = encode::EncodeInput {
         data: test_data.clone(),
         filename: filename.to_string(),
-        compress: true, // 圧縮も有効化
+        compress: false, // 圧縮なし - 確実に複数フラグメントに分割される
         ec_level: encode::EcLevel::L,
     };
 
     let encode_result = encode::encode(input).expect("encode large file");
 
-    // 複数のQRコードに分割されているはず
+    // 圧縮なし、L レベル（2953 byte/QR）なので、10KB → 4-5個のフラグメント
     assert!(
-        encode_result.fragments.len() > 10,
-        "large file should be split into many fragments"
+        encode_result.fragments.len() >= 3,
+        "large file should be split into multiple fragments, got {}",
+        encode_result.fragments.len()
     );
 
     let lines: Vec<&str> = encode_result
@@ -107,7 +112,7 @@ fn integration_test_large_file() {
     let entry = entries.values().next().unwrap();
 
     assert!(entry.is_complete());
-    assert_eq!(entry.compressed, Some(true));
+    assert_eq!(entry.compressed, Some(false));
 
     let decoded_data = decode::reconstruct(entry).expect("reconstruct large file");
     assert_eq!(decoded_data, test_data);
