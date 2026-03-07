@@ -1,5 +1,9 @@
 # File2QR
 
+[![CI](https://github.com/vert2air/File2QR/actions/workflows/ci.yml/badge.svg)](https://github.com/vert2air/File2QR/actions/workflows/ci.yml)
+[![Release](https://github.com/vert2air/File2QR/actions/workflows/release.yml/badge.svg)](https://github.com/vert2air/File2QR/actions/workflows/release.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 任意のファイルをQRコードに分割して表示・復元するツール
 
 ## 特徴
@@ -48,3 +52,49 @@ MIT License
 ## 仕様
 
 詳細は `docs/spec.md` を参照してください。
+
+---
+
+## 開発者向け情報
+
+### CI/CD
+
+このプロジェクトはGitHub Actionsを使用しています：
+
+- **CI**: プッシュ/PR時に自動テスト・ビルド（Linux/Windows/macOS）
+- **Release**: タグプッシュ時に自動リリース作成
+
+### リリース方法
+
+```bash
+# バージョンタグを作成してプッシュ
+git tag v0.1.0
+git push origin v0.1.0
+
+# GitHub Actionsが自動的に:
+# 1. Linux/Windows/macOS用バイナリをビルド
+# 2. GitHubリリースを作成
+# 3. バイナリをアップロード
+```
+
+### コードフォーマット
+
+```bash
+# フォーマット確認
+cargo fmt -- --check
+
+# 自動フォーマット
+cargo fmt
+
+# Linter実行
+cargo clippy -- -D warnings
+```
+
+### 依存関係の更新
+
+Dependabotが週次で自動的にPRを作成します。
+
+手動更新:
+```bash
+cargo update
+```
