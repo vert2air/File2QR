@@ -1,14 +1,14 @@
 #[cfg(test)]
 mod tests {
-    use super::EncodePanel;
     use crate::encode::EcLevel;
+    use crate::ui::encode_panel::EncodePanel;
 
     #[test]
     fn test_encode_panel_default_state() {
         let panel = EncodePanel::default();
         
         assert_eq!(panel.file_path, "");
-        assert_eq!(panel.text_input, "");
+        assert_eq!(panel.direct_text, "");
         assert_eq!(panel.compress, false);
         assert_eq!(panel.ec_level, EcLevel::M);
         assert!(panel.qr_window.is_none());
@@ -76,8 +76,8 @@ mod tests {
         let mut panel = EncodePanel::default();
         
         // テキストモードのテスト
-        panel.text_input = "Hello, World!".to_string();
-        assert_eq!(panel.text_input, "Hello, World!");
-        assert!(!panel.text_input.is_empty());
+        panel.direct_text = "Hello, World!".to_string();
+        assert_eq!(panel.direct_text, "Hello, World!");
+        assert!(!panel.direct_text.is_empty());
     }
 }

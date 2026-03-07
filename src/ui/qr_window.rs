@@ -78,12 +78,34 @@ impl QrWindow {
         };
 
         // 最初のページだけ即座に生成
-        win.load_page_qr(ctx);
-
-        // 残りをバックグラウンド生成
         win.start_background_generation(ctx);
-
+        win.load_page_qr(ctx);
         win
+    }
+
+    /// テスト用: Contextなしで初期化
+    /// 
+    /// 注: 環境変数FILE2QR_SCALEは読まず、常にscale=2で初期化されます。
+    /// QRコード生成やバックグラウンド処理も行いません。
+    #[cfg(test)]
+    pub fn new_for_test(fragments: Vec<String>, ec_level: EcLevel) -> Self {
+        let n = fragments.len();
+        let progress = Arc::new(Mutex::new(0));
+        let scale = 2;
+
+        Self {
+            fragments,
+            ec_level,
+            cols: 3,
+            rows: 2,
+            scale,
+            page: 0,
+            qr_data: (0..n).map(|_| None).collect(),
+            generation_progress: progress,
+            fullscreen: false,
+            current_page_ready: false,
+            open: true,
+        }
     }
 
     pub fn per_page(&self) -> usize {

@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use super::{DecodePanel, OutputDir};
+    use crate::ui::decode_panel::{DecodePanel, OutputDir};
 
     #[test]
     fn test_decode_panel_default_state() {

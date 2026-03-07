@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use crate::decode::{extract_meta, parse_lines};
 
     #[test]
     fn test_parse_fragment_line_valid() {
