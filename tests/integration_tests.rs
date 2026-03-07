@@ -24,11 +24,8 @@ fn integration_test_roundtrip_realistic_file() {
     );
 
     // デコード
-    let lines: Vec<&str> = encode_result
-        .fragments
-        .iter()
-        .map(|s| s.as_str())
-        .collect();
+    let lines: Vec<&str> =
+        encode_result.fragments.iter().map(|s| s.as_str()).collect();
     let entries = decode::parse_lines(&lines);
 
     assert_eq!(entries.len(), 1, "should have exactly one hash entry");
@@ -37,7 +34,8 @@ fn integration_test_roundtrip_realistic_file() {
     assert!(entry.is_complete(), "all fragments should be present");
 
     // データ復元
-    let decoded_data = decode::reconstruct(entry).expect("reconstruct should succeed");
+    let decoded_data =
+        decode::reconstruct(entry).expect("reconstruct should succeed");
 
     // 元データと一致
     assert_eq!(
@@ -59,11 +57,8 @@ fn integration_test_multiple_ec_levels() {
         };
 
         let encode_result = encode::encode(input).unwrap();
-        let lines: Vec<&str> = encode_result
-            .fragments
-            .iter()
-            .map(|s| s.as_str())
-            .collect();
+        let lines: Vec<&str> =
+            encode_result.fragments.iter().map(|s| s.as_str()).collect();
 
         let entries = decode::parse_lines(&lines);
         let entry = entries.values().next().unwrap();
@@ -103,18 +98,16 @@ fn integration_test_large_file() {
         encode_result.fragments.len()
     );
 
-    let lines: Vec<&str> = encode_result
-        .fragments
-        .iter()
-        .map(|s| s.as_str())
-        .collect();
+    let lines: Vec<&str> =
+        encode_result.fragments.iter().map(|s| s.as_str()).collect();
     let entries = decode::parse_lines(&lines);
     let entry = entries.values().next().unwrap();
 
     assert!(entry.is_complete());
     assert_eq!(entry.compressed, Some(false));
 
-    let decoded_data = decode::reconstruct(entry).expect("reconstruct large file");
+    let decoded_data =
+        decode::reconstruct(entry).expect("reconstruct large file");
     assert_eq!(decoded_data, test_data);
 }
 
@@ -148,11 +141,11 @@ fn integration_test_compression_effectiveness() {
     );
 
     // 両方とも正しく復元できる
-    for (name, result) in [
-        ("no_compress", result_no_compress),
-        ("compress", result_compress),
-    ] {
-        let lines: Vec<&str> = result.fragments.iter().map(|s| s.as_str()).collect();
+    for (name, result) in
+        [("no_compress", result_no_compress), ("compress", result_compress)]
+    {
+        let lines: Vec<&str> =
+            result.fragments.iter().map(|s| s.as_str()).collect();
         let entries = decode::parse_lines(&lines);
         let entry = entries.values().next().unwrap();
         let decoded = decode::reconstruct(entry).unwrap();
@@ -177,7 +170,8 @@ fn integration_test_fragment_shuffle() {
     let mut reversed_fragments = encode_result.fragments.clone();
     reversed_fragments.reverse();
 
-    let lines: Vec<&str> = reversed_fragments.iter().map(|s| s.as_str()).collect();
+    let lines: Vec<&str> =
+        reversed_fragments.iter().map(|s| s.as_str()).collect();
     let entries = decode::parse_lines(&lines);
     let entry = entries.values().next().unwrap();
 
