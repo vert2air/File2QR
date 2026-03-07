@@ -1,5 +1,8 @@
 pub mod fragment;
 
+#[cfg(test)]
+mod tests;
+
 use base64::{Engine as _, engine::general_purpose::STANDARD};
 use percent_encoding::percent_decode_str;
 use std::collections::HashMap;

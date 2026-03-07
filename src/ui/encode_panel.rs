@@ -215,3 +215,7 @@ impl EncodePanel {
         }
     }
 }
+
+#[cfg(test)]
+#[path = "encode_panel_tests.rs"]
+mod tests;

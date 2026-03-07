@@ -1,5 +1,8 @@
 pub mod fragment;
 
+#[cfg(test)]
+mod tests;
+
 use base64::{Engine as _, engine::general_purpose::STANDARD};
 use percent_encoding::{NON_ALPHANUMERIC, utf8_percent_encode};
 use sha2::{Digest, Sha256};

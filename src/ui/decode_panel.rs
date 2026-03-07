@@ -437,3 +437,7 @@ impl DecodePanel {
         }
     }
 }
+
+#[cfg(test)]
+#[path = "decode_panel_tests.rs"]
+mod tests;
