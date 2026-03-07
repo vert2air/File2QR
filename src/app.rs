@@ -1,5 +1,5 @@
+use crate::ui::{decode_panel::DecodePanel, encode_panel::EncodePanel};
 use eframe::egui;
-use crate::ui::{encode_panel::EncodePanel, decode_panel::DecodePanel};
 
 #[derive(PartialEq)]
 pub enum Tab {
@@ -35,7 +35,7 @@ fn setup_fonts(ctx: &egui::Context) {
         r"C:\Windows\Fonts\YuGothM.ttc",
         r"C:\Windows\Fonts\NotoSansCJK-Regular.ttc",
         // macOS
-        "/System/Library/Fonts/\u{30D2}\u{30E9}\u{30AE}\u{30CE}\u{89D2}\u{30B4}\u{30B7}\u{30C3}\u{30AF} W3.ttc",
+        "/System/Library/Fonts/ヒラギノ角ゴシック W3.ttc",
         "/System/Library/Fonts/Hiragino Sans GB.ttc",
         "/Library/Fonts/Arial Unicode MS.ttf",
         // Linux
@@ -49,7 +49,7 @@ fn setup_fonts(ctx: &egui::Context) {
         if let Ok(data) = std::fs::read(path) {
             fonts.font_data.insert(
                 "japanese".to_owned(),
-                egui::FontData::from_owned(data).into(),
+                egui::FontData::from_owned(data),
             );
             fonts
                 .families
@@ -62,7 +62,6 @@ fn setup_fonts(ctx: &egui::Context) {
                 .or_default()
                 .insert(0, "japanese".to_owned());
             loaded = true;
-            eprintln!("フォント読み込み成功: {}", path);
             break;
         }
     }
@@ -78,18 +77,24 @@ impl eframe::App for App {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         egui::TopBottomPanel::top("tab_bar").show(ctx, |ui| {
             ui.horizontal(|ui| {
-                ui.selectable_value(&mut self.current_tab, Tab::Encode, "QRコード生成");
-                ui.selectable_value(&mut self.current_tab, Tab::Decode, "データ復元");
+                ui.selectable_value(
+                    &mut self.current_tab,
+                    Tab::Encode,
+                    "QRコード生成",
+                );
+                ui.selectable_value(
+                    &mut self.current_tab,
+                    Tab::Decode,
+                    "データ復元",
+                );
             });
         });
 
-        egui::CentralPanel::default().show(ctx, |ui| {
-            match self.current_tab {
-                Tab::Encode => self.encode_panel.show(ctx, ui),
-                Tab::Decode => self.decode_panel.show(ctx, ui),
-            }
+        egui::CentralPanel::default().show(ctx, |ui| match self.current_tab {
+            Tab::Encode => self.encode_panel.show(ctx, ui),
+            Tab::Decode => self.decode_panel.show(ctx, ui),
         });
-        
+
         // QRコード表示ウィンドウの更新（通常のWindow）
         if let Some(ref mut qr_win) = self.encode_panel.qr_window {
             qr_win.show(ctx);

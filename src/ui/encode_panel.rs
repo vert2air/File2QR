@@ -1,6 +1,6 @@
-use eframe::egui;
 use crate::encode::{self, EcLevel, EncodeInput};
 use crate::ui::qr_window::QrWindow;
+use eframe::egui;
 
 /// 入力モード
 #[derive(PartialEq)]
@@ -43,7 +43,11 @@ impl EncodePanel {
         ui.horizontal(|ui| {
             ui.label("入力モード:");
             ui.radio_value(&mut self.input_mode, InputMode::File, "ファイル");
-            ui.radio_value(&mut self.input_mode, InputMode::DirectText, "テキスト直接入力");
+            ui.radio_value(
+                &mut self.input_mode,
+                InputMode::DirectText,
+                "テキスト直接入力",
+            );
         });
 
         ui.separator();
@@ -115,44 +119,42 @@ impl EncodePanel {
             // ドラッグ&ドロップ
             if response.hovered() {
                 ctx.input(|i| {
-                    if let Some(path) = i.raw.dropped_files.first() {
-                        if let Some(p) = &path.path {
-                            self.file_path = p.to_string_lossy().to_string();
-                        }
+                    if let Some(path) = i.raw.dropped_files.first()
+                        && let Some(p) = &path.path
+                    {
+                        self.file_path = p.to_string_lossy().to_string();
                     }
                 });
             }
 
-            if ui.button("📂 選択...").clicked() {
-                if let Some(path) = rfd::FileDialog::new().pick_file() {
-                    self.file_path = path.to_string_lossy().to_string();
-                }
+            if ui.button("📂 選択...").clicked()
+                && let Some(path) = rfd::FileDialog::new().pick_file()
+            {
+                self.file_path = path.to_string_lossy().to_string();
             }
         });
 
         // グローバルなD&Dも受け付ける
         ctx.input(|i| {
-            if let Some(path) = i.raw.dropped_files.first() {
-                if let Some(p) = &path.path {
-                    self.file_path = p.to_string_lossy().to_string();
-                    self.error_msg = None;
-                }
+            if let Some(path) = i.raw.dropped_files.first()
+                && let Some(p) = &path.path
+            {
+                self.file_path = p.to_string_lossy().to_string();
+                self.error_msg = None;
             }
         });
     }
 
     fn show_text_input(&mut self, ui: &mut egui::Ui) {
         ui.label("テキスト入力:");
-        egui::ScrollArea::vertical()
-            .max_height(200.0)
-            .show(ui, |ui| {
-                ui.add(
-                    egui::TextEdit::multiline(&mut self.direct_text)
-                        .desired_width(f32::INFINITY)
-                        .desired_rows(8)
-                        .hint_text("ここにテキストを入力してください"),
-                );
-            });
+        egui::ScrollArea::vertical().max_height(200.0).show(ui, |ui| {
+            ui.add(
+                egui::TextEdit::multiline(&mut self.direct_text)
+                    .desired_width(f32::INFINITY)
+                    .desired_rows(8)
+                    .hint_text("ここにテキストを入力してください"),
+            );
+        });
     }
 
     fn generate(&mut self, ctx: &egui::Context) {
@@ -162,7 +164,8 @@ impl EncodePanel {
         let (data, filename) = match self.input_mode {
             InputMode::File => {
                 if self.file_path.trim().is_empty() {
-                    self.error_msg = Some("ファイルパスを指定してください".to_string());
+                    self.error_msg =
+                        Some("ファイルパスを指定してください".to_string());
                     return;
                 }
                 match std::fs::read(&self.file_path) {
@@ -174,14 +177,16 @@ impl EncodePanel {
                         (bytes, fname)
                     }
                     Err(e) => {
-                        self.error_msg = Some(format!("ファイル読み込みエラー: {}", e));
+                        self.error_msg =
+                            Some(format!("ファイル読み込みエラー: {}", e));
                         return;
                     }
                 }
             }
             InputMode::DirectText => {
                 if self.direct_text.trim().is_empty() {
-                    self.error_msg = Some("テキストを入力してください".to_string());
+                    self.error_msg =
+                        Some("テキストを入力してください".to_string());
                     return;
                 }
                 (
@@ -201,7 +206,8 @@ impl EncodePanel {
 
         match result {
             Ok(res) => {
-                self.qr_window = Some(QrWindow::new(ctx, res.fragments, self.ec_level));
+                self.qr_window =
+                    Some(QrWindow::new(ctx, res.fragments, self.ec_level));
             }
             Err(e) => {
                 self.error_msg = Some(e);
@@ -209,3 +215,7 @@ impl EncodePanel {
         }
     }
 }
+
+#[cfg(test)]
+#[path = "encode_panel_tests.rs"]
+mod tests;
