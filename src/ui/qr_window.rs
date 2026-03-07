@@ -428,3 +428,7 @@ impl QrWindow {
         }
     }
 }
+
+#[cfg(test)]
+#[path = "qr_window_tests.rs"]
+mod tests;

@@ -90,6 +90,39 @@ cargo fmt
 cargo clippy -- -D warnings
 ```
 
+### テスト
+
+```bash
+# すべてのテストを実行
+cargo test
+
+# 詳細出力
+cargo test -- --nocapture
+
+# 特定のテストのみ実行
+cargo test roundtrip
+
+# カバレッジ（cargo-tarpaulinが必要）
+cargo tarpaulin --out Html
+```
+
+**テスト内容:**
+- ✅ **encode → decode ラウンドトリップテスト**
+- ✅ 全エラー訂正レベル (L/M/Q/H)
+- ✅ 圧縮あり/なし
+- ✅ 大容量ファイル（複数QRコード分割）
+- ✅ 特殊文字を含むファイル名
+- ✅ バイナリデータ
+- ✅ フラグメント欠損の検出
+- ✅ フラグメント順序非依存性
+- ✅ **UI状態管理テスト**（EncodePanel, DecodePanel, QrWindow）
+
+**注意:** GUIの描画部分は自動テストできません。以下を手動確認してください：
+- QRコード表示の正確性
+- ボタンクリック時の挙動
+- ウィンドウのリサイズ
+- 全画面表示の動作
+
 ### 依存関係の更新
 
 Dependabotが週次で自動的にPRを作成します。
