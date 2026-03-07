@@ -1,7 +1,11 @@
 [package]
-name = "File2QR"
+name = "file2qr"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
+
+[[bin]]
+name = "File2QR"
+path = "src/main.rs"
 
 [dependencies]
 eframe = { version = "0.29", features = ["default"] }
