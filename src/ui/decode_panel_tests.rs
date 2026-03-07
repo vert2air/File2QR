@@ -10,7 +10,7 @@ mod tests {
         assert_eq!(panel.file_path_input, "");
         assert!(panel.entries.is_empty());
         assert!(panel.selected_hashes.is_empty());
-        assert!(matches!(panel.output_dir, OutputDir::Downloads));
+        assert!(matches!(panel.output_dir, OutputDir::SameAsInput));  // デフォルトはSameAsInput
         assert!(panel.decoded_text.is_none());
         assert!(panel.status_msg.is_none());
         assert!(panel.error_msg.is_none());
@@ -50,8 +50,8 @@ mod tests {
     fn test_decode_panel_output_dir_selection() {
         let mut panel = DecodePanel::default();
         
-        // デフォルトはDownloads
-        assert!(matches!(panel.output_dir, OutputDir::Downloads));
+        // デフォルトはSameAsInput
+        assert!(matches!(panel.output_dir, OutputDir::SameAsInput));
         
         // 変更可能
         panel.output_dir = OutputDir::CurrentDir;

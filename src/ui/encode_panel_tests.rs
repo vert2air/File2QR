@@ -10,7 +10,7 @@ mod tests {
         assert_eq!(panel.file_path, "");
         assert_eq!(panel.direct_text, "");
         assert_eq!(panel.compress, false);
-        assert_eq!(panel.ec_level, EcLevel::M);
+        assert_eq!(panel.ec_level, EcLevel::L);  // デフォルトはL
         assert!(panel.qr_window.is_none());
         assert!(panel.error_msg.is_none());
     }
@@ -32,8 +32,8 @@ mod tests {
     fn test_encode_panel_ec_level_change() {
         let mut panel = EncodePanel::default();
         
-        // デフォルトはM
-        assert_eq!(panel.ec_level, EcLevel::M);
+        // デフォルトはL
+        assert_eq!(panel.ec_level, EcLevel::L);
         
         // 変更可能
         panel.ec_level = EcLevel::H;
