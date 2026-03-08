@@ -107,9 +107,7 @@ mod tests {
 
         // 圧縮フラグありのケース
         let chunk_compressed = "005:test.bin:xv:YWJj";
-        if let Some((qr_num, filename, compressed)) =
-            extract_meta(chunk_compressed)
-        {
+        if let Some((qr_num, filename, compressed)) = extract_meta(chunk_compressed) {
             assert_eq!(qr_num, 5);
             assert_eq!(filename, "test.bin");
             assert_eq!(compressed, true);
@@ -186,7 +184,10 @@ mod tests {
         let entry = entries.get("12345678").unwrap();
 
         // 最後に追加されたものが保持される
-        assert_eq!(entry.fragments.get(&1).unwrap(), "002:file.txt::newdata");
+        assert_eq!(
+            entry.fragments.get(&1).unwrap(),
+            "002:file.txt::newdata"
+        );
     }
 
     #[test]

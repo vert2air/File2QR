@@ -84,7 +84,7 @@ impl QrWindow {
     }
 
     /// テスト用: Contextなしで初期化
-    ///
+    /// 
     /// 注: 環境変数FILE2QR_SCALEは読まず、常にscale=2で初期化されます。
     /// QRコード生成やバックグラウンド処理も行いません。
     #[cfg(test)]

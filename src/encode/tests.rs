@@ -21,8 +21,7 @@ mod tests {
         assert!(!result.fragments.is_empty(), "fragments should not be empty");
 
         // フラグメントをテキスト行として扱う
-        let lines: Vec<&str> =
-            result.fragments.iter().map(|s| s.as_str()).collect();
+        let lines: Vec<&str> = result.fragments.iter().map(|s| s.as_str()).collect();
 
         // デコード
         let entries = decode::parse_lines(&lines);
@@ -37,8 +36,7 @@ mod tests {
         );
 
         // データ復元
-        let decoded_data =
-            decode::reconstruct(entry).expect("reconstruct failed");
+        let decoded_data = decode::reconstruct(entry).expect("reconstruct failed");
         assert_eq!(
             decoded_data, original_data,
             "decoded data should match original"
@@ -59,20 +57,14 @@ mod tests {
         };
 
         let result = encode(input).expect("encode failed");
-        let lines: Vec<&str> =
-            result.fragments.iter().map(|s| s.as_str()).collect();
+        let lines: Vec<&str> = result.fragments.iter().map(|s| s.as_str()).collect();
 
         let entries = decode::parse_lines(&lines);
         let entry = entries.values().next().unwrap();
 
-        assert_eq!(
-            entry.compressed,
-            Some(true),
-            "should be marked as compressed"
-        );
+        assert_eq!(entry.compressed, Some(true), "should be marked as compressed");
 
-        let decoded_data =
-            decode::reconstruct(entry).expect("reconstruct failed");
+        let decoded_data = decode::reconstruct(entry).expect("reconstruct failed");
         assert_eq!(decoded_data, original_data, "decompressed data mismatch");
     }
 
@@ -95,15 +87,13 @@ mod tests {
             "large data should create multiple fragments"
         );
 
-        let lines: Vec<&str> =
-            result.fragments.iter().map(|s| s.as_str()).collect();
+        let lines: Vec<&str> = result.fragments.iter().map(|s| s.as_str()).collect();
         let entries = decode::parse_lines(&lines);
         let entry = entries.values().next().unwrap();
 
         assert!(entry.is_complete(), "all fragments should be present");
 
-        let decoded_data =
-            decode::reconstruct(entry).expect("reconstruct failed");
+        let decoded_data = decode::reconstruct(entry).expect("reconstruct failed");
         assert_eq!(decoded_data, original_data, "large data mismatch");
     }
 
@@ -121,16 +111,14 @@ mod tests {
                 ec_level: *ec_level,
             };
 
-            let result = encode(input)
-                .expect(&format!("encode failed for {:?}", ec_level));
-            let lines: Vec<&str> =
-                result.fragments.iter().map(|s| s.as_str()).collect();
+            let result = encode(input).expect(&format!("encode failed for {:?}", ec_level));
+            let lines: Vec<&str> = result.fragments.iter().map(|s| s.as_str()).collect();
 
             let entries = decode::parse_lines(&lines);
             let entry = entries.values().next().unwrap();
 
-            let decoded_data = decode::reconstruct(entry)
-                .expect(&format!("reconstruct failed for {:?}", ec_level));
+            let decoded_data =
+                decode::reconstruct(entry).expect(&format!("reconstruct failed for {:?}", ec_level));
             assert_eq!(
                 decoded_data, original_data,
                 "data mismatch for {:?}",
@@ -153,8 +141,7 @@ mod tests {
         };
 
         let result = encode(input).expect("encode failed");
-        let lines: Vec<&str> =
-            result.fragments.iter().map(|s| s.as_str()).collect();
+        let lines: Vec<&str> = result.fragments.iter().map(|s| s.as_str()).collect();
 
         let entries = decode::parse_lines(&lines);
         let entry = entries.values().next().unwrap();
@@ -165,8 +152,7 @@ mod tests {
             "special filename should be preserved"
         );
 
-        let decoded_data =
-            decode::reconstruct(entry).expect("reconstruct failed");
+        let decoded_data = decode::reconstruct(entry).expect("reconstruct failed");
         assert_eq!(decoded_data, original_data);
     }
 
@@ -184,14 +170,12 @@ mod tests {
         };
 
         let result = encode(input).expect("encode failed");
-        let lines: Vec<&str> =
-            result.fragments.iter().map(|s| s.as_str()).collect();
+        let lines: Vec<&str> = result.fragments.iter().map(|s| s.as_str()).collect();
 
         let entries = decode::parse_lines(&lines);
         let entry = entries.values().next().unwrap();
 
-        let decoded_data =
-            decode::reconstruct(entry).expect("reconstruct failed");
+        let decoded_data = decode::reconstruct(entry).expect("reconstruct failed");
         assert_eq!(decoded_data, original_data, "binary data mismatch");
     }
 
@@ -209,14 +193,10 @@ mod tests {
         };
 
         let result = encode(input).expect("encode failed");
-        assert!(
-            result.fragments.len() > 2,
-            "need multiple fragments for this test"
-        );
+        assert!(result.fragments.len() > 2, "need multiple fragments for this test");
 
         // 最後のフラグメントを削除
-        let incomplete_lines: Vec<&str> = result.fragments
-            [..result.fragments.len() - 1]
+        let incomplete_lines: Vec<&str> = result.fragments[..result.fragments.len() - 1]
             .iter()
             .map(|s| s.as_str())
             .collect();
@@ -225,10 +205,7 @@ mod tests {
         let entry = entries.values().next().unwrap();
 
         assert!(!entry.is_complete(), "should not be complete");
-        assert!(
-            !entry.missing_indices().is_empty(),
-            "should have missing indices"
-        );
+        assert!(!entry.missing_indices().is_empty(), "should have missing indices");
 
         // 復元は失敗するはず
         assert!(
@@ -251,17 +228,12 @@ mod tests {
         };
 
         let result = encode(input).expect("encode failed");
-        let lines: Vec<&str> =
-            result.fragments.iter().map(|s| s.as_str()).collect();
+        let lines: Vec<&str> = result.fragments.iter().map(|s| s.as_str()).collect();
 
         let entries = decode::parse_lines(&lines);
         let entry = entries.values().next().unwrap();
 
-        let decoded_data =
-            decode::reconstruct(entry).expect("reconstruct failed");
-        assert_eq!(
-            decoded_data, original_data,
-            "empty data should round-trip"
-        );
+        let decoded_data = decode::reconstruct(entry).expect("reconstruct failed");
+        assert_eq!(decoded_data, original_data, "empty data should round-trip");
     }
 }
