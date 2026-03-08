@@ -82,5 +82,9 @@ pub fn to_egui_image(img: &GrayImage) -> egui::ColorImage {
             egui::Color32::from_gray(v)
         })
         .collect();
-    egui::ColorImage { size: [w as usize, h as usize], pixels }
+    egui::ColorImage {
+        size: [w as usize, h as usize],
+        pixels,
+        source_size: egui::Vec2::new(w as f32, h as f32),
+    }
 }

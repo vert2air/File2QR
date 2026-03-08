@@ -3,6 +3,8 @@
 [![CI](https://github.com/vert2air/File2QR/actions/workflows/ci.yml/badge.svg)](https://github.com/vert2air/File2QR/actions/workflows/ci.yml)
 [![Release](https://github.com/vert2air/File2QR/actions/workflows/release.yml/badge.svg)](https://github.com/vert2air/File2QR/actions/workflows/release.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Rust Version](https://img.shields.io/badge/rust-1.85%2B-blue.svg)](https://www.rust-lang.org)
+[![Crates.io](https://img.shields.io/crates/v/file2qr.svg)](https://crates.io/crates/file2qr)
 
 任意のファイルをQRコードに分割して表示・復元するツール
 
