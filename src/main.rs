@@ -1,5 +1,9 @@
 fn main() -> eframe::Result<()> {
-    env_logger::init();
+    // 起動時のVulkan関連警告を抑制（本当のエラーは表示される）
+    env_logger::Builder::from_default_env()
+        .filter_level(log::LevelFilter::Info) // デフォルトはInfo以上
+        .filter_module("wgpu_hal::vulkan::instance", log::LevelFilter::Off) // Vulkan初期化のみ非表示
+        .init();
 
     let options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
