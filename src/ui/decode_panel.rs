@@ -262,7 +262,17 @@ impl DecodePanel {
         // ── 直接テキスト表示 ──
         if let Some(ref text) = self.decoded_text.clone() {
             ui.separator();
-            ui.label("📝 復元されたテキスト:");
+            ui.horizontal(|ui| {
+                ui.label("📝 復元されたテキスト:");
+
+                // 全選択ボタン
+                if ui.button("📋 全選択してコピー").clicked() {
+                    ctx.copy_text(text.clone());
+                    self.status_msg =
+                        Some("クリップボードにコピーしました".to_string());
+                }
+            });
+
             egui::ScrollArea::vertical().max_height(150.0).show(ui, |ui| {
                 ui.add(
                     egui::TextEdit::multiline(
@@ -271,9 +281,12 @@ impl DecodePanel {
                             .unwrap_or(&mut String::new()),
                     )
                     .desired_width(f32::INFINITY)
-                    .interactive(false),
+                    .interactive(true) // 選択可能に変更
+                    .desired_rows(8),
                 );
             });
+
+            ui.label("💡 テキストをマウスで選択してCtrl+Cでコピーできます");
             let _ = text;
         }
     }
