@@ -331,7 +331,10 @@ impl QrWindow {
             let can_prev = self.page > 0;
             let can_next = self.page + 1 < self.total_pages();
 
-            if ui.add_enabled(can_prev, egui::Button::new("◀ 前")).clicked()
+            if ui
+                .add_enabled(can_prev, egui::Button::new("◀ 前"))
+                .on_hover_text("前のページ")
+                .clicked()
             {
                 self.prev_page(ctx);
             }
@@ -343,7 +346,10 @@ impl QrWindow {
                 self.fragments.len()
             ));
 
-            if ui.add_enabled(can_next, egui::Button::new("次 ▶")).clicked()
+            if ui
+                .add_enabled(can_next, egui::Button::new("次 ▶"))
+                .on_hover_text("次のページ")
+                .clicked()
             {
                 self.next_page(ctx);
             }
@@ -352,22 +358,30 @@ impl QrWindow {
 
             // 表示グリッド設定（即座に変更、再生成なし）
             ui.label("縦:");
-            if ui.small_button("-").clicked() && self.rows > 1 {
-                self.rows -= 1;
-            }
+            ui.push_id("rows_dec", |ui| {
+                if ui.button("-").clicked() && self.rows > 1 {
+                    self.rows -= 1;
+                }
+            });
             ui.label(format!("{}", self.rows));
-            if ui.small_button("+").clicked() {
-                self.rows += 1;
-            }
+            ui.push_id("rows_inc", |ui| {
+                if ui.button("+").clicked() {
+                    self.rows += 1;
+                }
+            });
 
             ui.label("横:");
-            if ui.small_button("-").clicked() && self.cols > 1 {
-                self.cols -= 1;
-            }
+            ui.push_id("cols_dec", |ui| {
+                if ui.button("-").clicked() && self.cols > 1 {
+                    self.cols -= 1;
+                }
+            });
             ui.label(format!("{}", self.cols));
-            if ui.small_button("+").clicked() {
-                self.cols += 1;
-            }
+            ui.push_id("cols_inc", |ui| {
+                if ui.button("+").clicked() {
+                    self.cols += 1;
+                }
+            });
 
             ui.separator();
 

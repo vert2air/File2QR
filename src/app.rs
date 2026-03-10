@@ -16,6 +16,12 @@ pub struct App {
 impl App {
     pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
         setup_fonts(&cc.egui_ctx);
+
+        // ID重複警告を無効化
+        cc.egui_ctx.options_mut(|o| {
+            o.warn_on_id_clash = false;
+        });
+
         Self {
             current_tab: Tab::Encode,
             encode_panel: EncodePanel::default(),
