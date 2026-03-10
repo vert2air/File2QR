@@ -217,7 +217,7 @@ impl DecodePanel {
                         .hint_text("出力ディレクトリのパス")
                         .desired_width(400.0),
                 );
-                if ui.button("📂 選択...").clicked()
+                if ui.button("📂 フォルダ選択...").clicked()
                     && let Some(dir) = rfd::FileDialog::new().pick_folder()
                 {
                     self.custom_dir = dir.to_string_lossy().to_string();

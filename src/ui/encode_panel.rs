@@ -127,7 +127,7 @@ impl EncodePanel {
                 });
             }
 
-            if ui.button("📂 選択...").clicked()
+            if ui.button("📂 ファイル選択...").clicked()
                 && let Some(path) = rfd::FileDialog::new().pick_file()
             {
                 self.file_path = path.to_string_lossy().to_string();
