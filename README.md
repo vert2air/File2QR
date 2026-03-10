@@ -45,6 +45,15 @@ cargo run --release
 ```bash
 # QRコード拡大率（デフォルト: 2）
 FILE2QR_SCALE=5 cargo run
+
+# レンダラー選択
+FILE2QR_RENDERER=glow cargo run  # 軽量（仮想環境推奨）
+FILE2QR_RENDERER=wgpu cargo run  # 高性能（物理マシン推奨）
+```
+
+**仮想マシンで動作が重い場合:**
+```bash
+FILE2QR_RENDERER=glow ./File2QR
 ```
 
 ## ライセンス
