@@ -9,8 +9,9 @@ fn main() -> eframe::Result<()> {
         .init();
 
     // 環境変数でレンダラーを切り替え可能
-    // FILE2QR_RENDERER=glow でglowを使用（軽量、仮想環境推奨）
-    // FILE2QR_RENDERER=wgpu でwgpuを使用（高性能、物理マシン推奨）
+    // FILE2QR_RENDERER=glow でglowを使用（物理マシン、OpenGL 2.0+必須）
+    // FILE2QR_RENDERER=wgpu でwgpuを使用（仮想環境推奨、DirectX/Vulkan）
+    // デフォルト：wgpu（互換性重視）
     let renderer = std::env::var("FILE2QR_RENDERER")
         .ok()
         .and_then(|s| match s.to_lowercase().as_str() {
@@ -18,7 +19,7 @@ fn main() -> eframe::Result<()> {
             "wgpu" => Some(eframe::Renderer::Wgpu),
             _ => None,
         })
-        .unwrap_or(eframe::Renderer::Glow); // デフォルトはglow（軽量）
+        .unwrap_or(eframe::Renderer::Wgpu); // デフォルトはwgpu
 
     let options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()

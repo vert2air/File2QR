@@ -46,14 +46,21 @@ cargo run --release
 # QRコード拡大率（デフォルト: 2）
 FILE2QR_SCALE=5 cargo run
 
-# レンダラー選択
-FILE2QR_RENDERER=glow cargo run  # 軽量（仮想環境推奨）
-FILE2QR_RENDERER=wgpu cargo run  # 高性能（物理マシン推奨）
+# レンダラー選択（デフォルト: wgpu）
+FILE2QR_RENDERER=wgpu cargo run  # DirectX/Vulkan（仮想環境・デフォルト）
+FILE2QR_RENDERER=glow cargo run  # OpenGL 2.0+（物理マシン・軽量）
 ```
 
-**仮想マシンで動作が重い場合:**
+**仮想マシンで起動しない場合:**
 ```bash
-FILE2QR_RENDERER=glow ./File2QR
+# 既にデフォルトがwgpuなので、そのまま実行
+cargo run --release
+```
+
+**OpenGLエラーが出る場合:**
+```bash
+# wgpuに明示的に切り替え
+FILE2QR_RENDERER=wgpu ./File2QR
 ```
 
 ## ライセンス
