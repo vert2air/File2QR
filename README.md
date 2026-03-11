@@ -46,15 +46,20 @@ cargo run --release
 # QRコード拡大率（デフォルト: 2）
 FILE2QR_SCALE=5 cargo run
 
-# レンダラー選択
-FILE2QR_RENDERER=glow cargo run  # 軽量（仮想環境推奨）
-FILE2QR_RENDERER=wgpu cargo run  # 高性能（物理マシン推奨）
+# レンダラー選択（デフォルト: 自動選択）
+# 指定しない場合、wgpu → glow の順で自動試行
+FILE2QR_RENDERER=wgpu cargo run  # wgpuのみ試行
+FILE2QR_RENDERER=glow cargo run  # glowのみ試行
 ```
 
-**仮想マシンで動作が重い場合:**
-```bash
-FILE2QR_RENDERER=glow ./File2QR
-```
+**レンダラーの自動選択:**
+デフォルトでは、アプリが起動時に最適なレンダラーを自動的に選択します：
+1. **wgpu**を試行（DirectX 12/Vulkan/Metal）
+2. 失敗したら**glow**を試行（OpenGL 2.0+）
+
+**トラブルシューティング:**
+- 起動しない場合：ログを確認してどのレンダラーが試行されたか確認
+- 環境変数で特定のレンダラーを指定すると、そのレンダラーのみ試行
 
 ## ライセンス
 
