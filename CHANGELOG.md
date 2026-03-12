@@ -1,0 +1,59 @@
+# Changelog
+
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [0.2.0] - 2026-03-12
+
+### Added
+- テキストコピー機能
+  - デコードパネルで復元されたテキストをマウスで範囲選択可能
+  - Ctrl+C でクリップボードにコピー
+  - 「全選択してコピー」ボタンでワンクリックコピー
+- レンダラー自動フォールバック機能
+  - wgpu で起動失敗時に自動的に glow レンダラーにフォールバック
+  - 環境変数 `FILE2QR_RENDERER` で特定のレンダラーを指定可能
+- 仮想環境（Windows 11）での動作サポート
+
+### Changed
+- デフォルトレンダラーを glow から wgpu に変更
+  - より広い環境で動作するように変更
+  - OpenGL 2.0 未満の環境でも DirectX 12/Vulkan で動作
+- 依存関係の更新
+  - rfd: 0.15.4 → 0.17.2
+  - actions/checkout: v4 → v6
+  - actions/cache: v4 → v5
+  - actions/upload-artifact: v4 → v7
+
+### Fixed
+- ウィジェットID衝突による赤字エラーメッセージを修正
+  - 「📂 選択...」ボタンのラベルを一意に変更
+  - QRウィンドウの +/- ボタンに一意のIDを付与
+  - ID衝突警告を無効化
+- 起動時の不要なログ出力を抑制
+  - Vulkan 初期化の警告を非表示
+  - OpenGL バージョン警告を非表示
+  - DirectX 12 シェーダーコンパイル詳細を非表示
+  - egui_wgpu の詳細情報を非表示
+
+## [0.1.0] - 2026-03-08
+
+Initial release.
+
+### Added
+- ファイルをQRコードに分割して表示
+- QRコードから元ファイルを復元
+- xz圧縮オプション
+- エラー訂正レベル選択（L/M/Q/H）
+- QRコード表示ウィンドウ
+  - グリッド表示（行・列調整可能）
+  - ページネーション
+  - 全画面表示（F11）
+- 日本語フォント自動読み込み
+- CI/CD（GitHub Actions）
+- 包括的なテストスイート（48テスト）
+
+[Unreleased]: https://github.com/vert2air/File2QR/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/vert2air/File2QR/releases/tag/v0.1.0
