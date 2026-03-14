@@ -1,166 +1,228 @@
 #[cfg(test)]
 mod tests {
     use crate::encode::EcLevel;
-    use crate::ui::qr_window::QrWindow;
+    use crate::ui::qr_window::{QrWindow, QrWindowMessage};
+
+    // ── 初期化 ────────────────────────────────────────────────
 
     #[test]
-    fn test_qr_window_initialization() {
-        let fragments = vec!["fragment1".to_string(), "fragment2".to_string()];
-
-        let window = QrWindow::new_for_test(fragments.clone(), EcLevel::M);
-
-        assert_eq!(window.fragments.len(), 2);
-        assert_eq!(window.ec_level, EcLevel::M);
-        assert_eq!(window.rows, 2);
-        assert_eq!(window.cols, 3);
-        assert_eq!(window.page, 0);
-        assert!(window.open);
-        assert!(!window.fullscreen);
+    fn test_initialization() {
+        let win = QrWindow::new_for_test(
+            vec!["a".to_string(), "b".to_string()],
+            EcLevel::M,
+        );
+        assert_eq!(win.fragments.len(), 2);
+        assert_eq!(win.ec_level, EcLevel::M);
+        assert_eq!(win.rows, 2);
+        assert_eq!(win.cols, 3);
+        assert_eq!(win.page, 0);
+        assert_eq!(win.scale, 2); // new_for_test のデフォルト
+        assert!(win.open);
+        assert!(!win.fullscreen);
     }
 
     #[test]
-    fn test_qr_window_total_pages() {
-        let fragments = vec!["1".to_string(); 20]; // 20個のフラグメント
-        let mut window = QrWindow::new_for_test(fragments, EcLevel::M);
-
-        // 2行3列 = 6個/ページ
-        window.rows = 2;
-        window.cols = 3;
-
-        let total = window.total_pages();
-        assert_eq!(total, 4); // ceil(20 / 6) = 4
+    fn test_empty_fragments() {
+        let win = QrWindow::new_for_test(vec![], EcLevel::L);
+        assert_eq!(win.fragments.len(), 0);
+        assert_eq!(win.total_pages(), 0);
+        assert_eq!(win.page_range().count(), 0);
     }
 
     #[test]
-    fn test_qr_window_page_range() {
-        let fragments = vec!["1".to_string(); 10];
-        let mut window = QrWindow::new_for_test(fragments, EcLevel::M);
+    fn test_single_fragment() {
+        let win = QrWindow::new_for_test(vec!["x".to_string()], EcLevel::H);
+        assert_eq!(win.total_pages(), 1);
+        assert_eq!(win.page_range().collect::<Vec<_>>(), vec![0]);
+    }
 
-        window.rows = 2;
-        window.cols = 2; // 4個/ページ
-        window.page = 0;
+    // ── ページ計算 ────────────────────────────────────────────
 
-        let range: Vec<usize> = window.page_range().collect();
-        assert_eq!(range, vec![0, 1, 2, 3]);
-
-        // 2ページ目
-        window.page = 1;
-        let range: Vec<usize> = window.page_range().collect();
-        assert_eq!(range, vec![4, 5, 6, 7]);
-
-        // 最後のページ（2個だけ）
-        window.page = 2;
-        let range: Vec<usize> = window.page_range().collect();
-        assert_eq!(range, vec![8, 9]);
+    #[test]
+    fn test_total_pages() {
+        let mut win =
+            QrWindow::new_for_test(vec!["x".to_string(); 20], EcLevel::L);
+        win.rows = 2;
+        win.cols = 3; // 6個/ページ → ceil(20/6) = 4
+        assert_eq!(win.total_pages(), 4);
     }
 
     #[test]
-    fn test_qr_window_next_page() {
-        let fragments = vec!["1".to_string(); 10];
-        let mut window = QrWindow::new_for_test(fragments, EcLevel::M);
-
-        window.rows = 2;
-        window.cols = 2;
-
-        assert_eq!(window.page, 0);
-        assert_eq!(window.total_pages(), 3);
-
-        // ページ移動はUI操作が必要なのでロジックのみテスト
-        let old_page = window.page;
-        if window.page + 1 < window.total_pages() {
-            window.page += 1;
-        }
-        assert_eq!(window.page, old_page + 1);
+    fn test_total_pages_exact_multiple() {
+        let mut win =
+            QrWindow::new_for_test(vec!["x".to_string(); 6], EcLevel::L);
+        win.rows = 2;
+        win.cols = 3;
+        assert_eq!(win.total_pages(), 1);
     }
 
     #[test]
-    fn test_qr_window_prev_page() {
-        let fragments = vec!["1".to_string(); 10];
-        let mut window = QrWindow::new_for_test(fragments, EcLevel::M);
-
-        window.page = 2;
-
-        let old_page = window.page;
-        if window.page > 0 {
-            window.page -= 1;
-        }
-        assert_eq!(window.page, old_page - 1);
-
-        // 0ページより前には行けない
-        window.page = 0;
-        if window.page > 0 {
-            window.page -= 1;
-        }
-        assert_eq!(window.page, 0);
+    fn test_page_range_first() {
+        let mut win =
+            QrWindow::new_for_test(vec!["x".to_string(); 10], EcLevel::L);
+        win.rows = 2;
+        win.cols = 2; // 4個/ページ
+        win.page = 0;
+        assert_eq!(win.page_range().collect::<Vec<_>>(), vec![0, 1, 2, 3]);
     }
 
     #[test]
-    fn test_qr_window_rows_cols_adjustment() {
-        let fragments = vec!["1".to_string(); 100];
-        let mut window = QrWindow::new_for_test(fragments, EcLevel::M);
-
-        // 行数増加
-        let old_rows = window.rows;
-        window.rows += 1;
-        assert_eq!(window.rows, old_rows + 1);
-
-        // 列数増加
-        let old_cols = window.cols;
-        window.cols += 1;
-        assert_eq!(window.cols, old_cols + 1);
-
-        // 最小値チェック（1以下にならない）
-        window.rows = 1;
-        if window.rows > 1 {
-            window.rows -= 1;
-        }
-        assert_eq!(window.rows, 1);
+    fn test_page_range_middle() {
+        let mut win =
+            QrWindow::new_for_test(vec!["x".to_string(); 10], EcLevel::L);
+        win.rows = 2;
+        win.cols = 2;
+        win.page = 1;
+        assert_eq!(win.page_range().collect::<Vec<_>>(), vec![4, 5, 6, 7]);
     }
 
     #[test]
-    fn test_qr_window_fullscreen_toggle() {
-        let fragments = vec!["1".to_string()];
-        let mut window = QrWindow::new_for_test(fragments, EcLevel::M);
+    fn test_page_range_last_partial() {
+        let mut win =
+            QrWindow::new_for_test(vec!["x".to_string(); 10], EcLevel::L);
+        win.rows = 2;
+        win.cols = 2;
+        win.page = 2; // 最後のページ: 2個だけ
+        assert_eq!(win.page_range().collect::<Vec<_>>(), vec![8, 9]);
+    }
 
-        assert!(!window.fullscreen);
+    // ── update() 経由のページ移動 ─────────────────────────────
 
-        // トグル
-        window.fullscreen = true;
-        assert!(window.fullscreen);
+    #[test]
+    fn test_next_page() {
+        let mut win =
+            QrWindow::new_for_test(vec!["x".to_string(); 10], EcLevel::L);
+        win.rows = 2;
+        win.cols = 2; // 3ページ
+        assert_eq!(win.page, 0);
 
-        window.fullscreen = false;
-        assert!(!window.fullscreen);
+        win.update(QrWindowMessage::NextPage);
+        assert_eq!(win.page, 1);
+
+        win.update(QrWindowMessage::NextPage);
+        assert_eq!(win.page, 2);
+
+        // 最終ページでは進まない
+        win.update(QrWindowMessage::NextPage);
+        assert_eq!(win.page, 2);
     }
 
     #[test]
-    fn test_qr_window_scale_default() {
-        // 環境変数が設定されていない場合のデフォルト値テスト
-        // 注: 環境変数操作はunsafeなので、デフォルト値のみテスト
-        let fragments = vec!["1".to_string()];
-        let window = QrWindow::new_for_test(fragments, EcLevel::M);
+    fn test_prev_page() {
+        let mut win =
+            QrWindow::new_for_test(vec!["x".to_string(); 10], EcLevel::L);
+        win.rows = 2;
+        win.cols = 2;
+        win.page = 2;
 
-        // デフォルトは2
-        assert_eq!(window.scale, 2);
+        win.update(QrWindowMessage::PrevPage);
+        assert_eq!(win.page, 1);
+
+        win.update(QrWindowMessage::PrevPage);
+        assert_eq!(win.page, 0);
+
+        // 先頭ページでは戻らない
+        win.update(QrWindowMessage::PrevPage);
+        assert_eq!(win.page, 0);
+    }
+
+    // ── update() 経由の行・列変更 ─────────────────────────────
+
+    #[test]
+    fn test_rows_inc_dec() {
+        let mut win =
+            QrWindow::new_for_test(vec!["x".to_string()], EcLevel::L);
+        assert_eq!(win.rows, 2);
+
+        win.update(QrWindowMessage::RowsInc);
+        assert_eq!(win.rows, 3);
+
+        win.update(QrWindowMessage::RowsDec);
+        assert_eq!(win.rows, 2);
+
+        // 1未満にはならない
+        win.rows = 1;
+        win.update(QrWindowMessage::RowsDec);
+        assert_eq!(win.rows, 1);
     }
 
     #[test]
-    fn test_qr_window_empty_fragments() {
-        let fragments = vec![];
-        let window = QrWindow::new_for_test(fragments, EcLevel::L);
+    fn test_cols_inc_dec() {
+        let mut win =
+            QrWindow::new_for_test(vec!["x".to_string()], EcLevel::L);
+        assert_eq!(win.cols, 3);
 
-        assert_eq!(window.fragments.len(), 0);
-        assert_eq!(window.total_pages(), 0);
+        win.update(QrWindowMessage::ColsInc);
+        assert_eq!(win.cols, 4);
+
+        win.update(QrWindowMessage::ColsDec);
+        assert_eq!(win.cols, 3);
+
+        // 1未満にはならない
+        win.cols = 1;
+        win.update(QrWindowMessage::ColsDec);
+        assert_eq!(win.cols, 1);
+    }
+
+    // ── update() 経由のスケール変更 ───────────────────────────
+
+    #[test]
+    fn test_scale_inc_dec() {
+        let mut win =
+            QrWindow::new_for_test(vec!["x".to_string()], EcLevel::L);
+        assert_eq!(win.scale, 2);
+
+        win.update(QrWindowMessage::ScaleInc);
+        assert_eq!(win.scale, 3);
+
+        win.update(QrWindowMessage::ScaleDec);
+        assert_eq!(win.scale, 2);
+
+        // 1未満にはならない
+        win.scale = 1;
+        win.update(QrWindowMessage::ScaleDec);
+        assert_eq!(win.scale, 1);
     }
 
     #[test]
-    fn test_qr_window_single_fragment() {
-        let fragments = vec!["single".to_string()];
-        let window = QrWindow::new_for_test(fragments, EcLevel::H);
+    fn test_scale_max() {
+        let mut win =
+            QrWindow::new_for_test(vec!["x".to_string()], EcLevel::L);
+        win.scale = 8;
+        win.update(QrWindowMessage::ScaleInc);
+        assert_eq!(win.scale, 8); // 上限8を超えない
+    }
 
-        assert_eq!(window.fragments.len(), 1);
-        assert_eq!(window.total_pages(), 1);
+    // ── update() 経由のClose ──────────────────────────────────
 
-        let range: Vec<usize> = window.page_range().collect();
-        assert_eq!(range, vec![0]);
+    #[test]
+    fn test_close() {
+        let mut win =
+            QrWindow::new_for_test(vec!["x".to_string()], EcLevel::L);
+        assert!(win.open);
+        win.update(QrWindowMessage::Close);
+        assert!(!win.open);
+    }
+
+    // ── per_page ──────────────────────────────────────────────
+
+    #[test]
+    fn test_per_page() {
+        let mut win =
+            QrWindow::new_for_test(vec!["x".to_string()], EcLevel::L);
+        win.rows = 3;
+        win.cols = 4;
+        assert_eq!(win.per_page(), 12);
+    }
+
+    // ── fullscreen フィールド（互換保持） ─────────────────────
+
+    #[test]
+    fn test_fullscreen_field_exists() {
+        let mut win =
+            QrWindow::new_for_test(vec!["x".to_string()], EcLevel::L);
+        assert!(!win.fullscreen);
+        win.fullscreen = true;
+        assert!(win.fullscreen);
     }
 }
