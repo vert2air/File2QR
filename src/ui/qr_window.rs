@@ -4,9 +4,8 @@ use iced::widget::{
     button, column, container, horizontal_rule, image as img_widget, row,
     scrollable, text,
 };
-use iced::{Element, Length};
+use iced::{ContentFit, Element, Length};
 
-/// QrWindow が発行するメッセージ
 #[derive(Debug, Clone)]
 pub enum QrWindowMessage {
     Close,
@@ -18,18 +17,11 @@ pub enum QrWindowMessage {
     ColsDec,
     ScaleInc,
     ScaleDec,
-    /// DPIスケール更新（将来の拡張用。現在は FILE2QR_DPI_SCALE 環境変数で設定）
-    DpiUpdated(f32),
 }
 
-/// 1枚の QRコード画像キャッシュ
 struct QrData {
-    /// 画像生成時の物理スケール
-    physical_scale: u32,
+    scale: u32,
     handle: iced::widget::image::Handle,
-    /// 画像の物理ピクセルサイズ
-    width: u32,
-    height: u32,
 }
 
 pub struct QrWindow {
@@ -37,36 +29,21 @@ pub struct QrWindow {
     pub ec_level: EcLevel,
     pub cols: usize,
     pub rows: usize,
-    /// ユーザー指定の論理スケール（1x, 2x, ...）
     pub scale: u32,
     pub page: usize,
     pub open: bool,
-    /// テスト互換のためフィールドを残す
     pub fullscreen: bool,
-    /// 現在のDPIスケール（1.0 = 96dpi = 100%）
-    dpi_scale: f32,
     qr_cache: Vec<Option<QrData>>,
 }
 
 impl QrWindow {
-    pub fn new(
-        fragments: Vec<String>,
-        ec_level: EcLevel,
-        dpi_scale: f32,
-    ) -> Self {
+    pub fn new(fragments: Vec<String>, ec_level: EcLevel) -> Self {
         let n = fragments.len();
-
         let scale = std::env::var("FILE2QR_SCALE")
             .ok()
             .and_then(|s| s.parse::<u32>().ok())
             .unwrap_or(2)
             .max(1);
-
-        let phys = physical_scale(scale, dpi_scale);
-        eprintln!(
-            "QRコード: 論理{}x / DPI={:.2} / 物理{}px/module",
-            scale, dpi_scale, phys
-        );
 
         let mut win = Self {
             fragments,
@@ -77,7 +54,6 @@ impl QrWindow {
             page: 0,
             open: true,
             fullscreen: false,
-            dpi_scale,
             qr_cache: (0..n).map(|_| None).collect(),
         };
         win.load_page_qr();
@@ -96,7 +72,6 @@ impl QrWindow {
             page: 0,
             open: true,
             fullscreen: false,
-            dpi_scale: 1.0,
             qr_cache: (0..n).map(|_| None).collect(),
         }
     }
@@ -143,14 +118,6 @@ impl QrWindow {
             QrWindowMessage::ScaleDec => {
                 if self.scale > 1 {
                     self.scale -= 1;
-                    self.reload_all_cache();
-                }
-            }
-            QrWindowMessage::DpiUpdated(dpi) => {
-                let old_phys = physical_scale(self.scale, self.dpi_scale);
-                let new_phys = physical_scale(self.scale, dpi);
-                self.dpi_scale = dpi;
-                if old_phys != new_phys {
                     self.reload_all_cache();
                 }
             }
@@ -243,12 +210,6 @@ impl QrWindow {
             button(text("+").size(13))
                 .on_press(QrWindowMessage::ScaleInc)
                 .padding([2, 8]),
-            text(format!(
-                "(物理{}px/dot, DPI={:.2})",
-                physical_scale(self.scale, self.dpi_scale),
-                self.dpi_scale
-            ))
-            .size(11),
         ]
         .spacing(6)
         .align_y(iced::Alignment::Center)
@@ -277,16 +238,12 @@ impl QrWindow {
 
                 let cell: Element<QrWindowMessage> =
                     if let Some(ref data) = self.qr_cache[qr_idx] {
-                        // 論理サイズ = 物理ピクセル ÷ DPIスケール
-                        // iced が再度 dpi_scale を乗算すると physical_pixels に戻る
-                        // → 1モジュール = 整数物理ピクセル → シャープな矩形
-                        let display_w = data.width as f32 / self.dpi_scale;
-                        let display_h = data.height as f32 / self.dpi_scale;
-
+                        // ContentFit::None = 拡大縮小なし、画像1px = 論理1px
+                        // generate_qr_image() で scale px/module の整数画像を生成済み
+                        // iced はそれをそのまま描画 → ドット幅が常に均一
                         column![
                             img_widget(data.handle.clone())
-                                .width(display_w)
-                                .height(display_h)
+                                .content_fit(ContentFit::None)
                                 .filter_method(
                                     iced::widget::image::FilterMethod::Nearest
                                 ),
@@ -324,8 +281,6 @@ impl QrWindow {
         column(rows_vec).spacing(16).into()
     }
 
-    // ── ヘルパー ──────────────────────────────────────────────
-
     pub fn per_page(&self) -> usize {
         self.cols * self.rows
     }
@@ -348,10 +303,9 @@ impl QrWindow {
     }
 
     fn load_page_qr(&mut self) {
-        let phys = physical_scale(self.scale, self.dpi_scale);
         for i in self.page_range() {
             let need_regen = match self.qr_cache[i] {
-                Some(ref d) => d.physical_scale != phys,
+                Some(ref d) => d.scale != self.scale,
                 None => true,
             };
             if need_regen {
@@ -361,17 +315,11 @@ impl QrWindow {
     }
 
     fn generate_qr_at(&mut self, i: usize) {
-        let phys = physical_scale(self.scale, self.dpi_scale);
-        match generate_qr_image(&self.fragments[i], self.ec_level, phys) {
+        match generate_qr_image(&self.fragments[i], self.ec_level, self.scale)
+        {
             Ok(img) => {
-                let (w, h) = img.dimensions();
                 let handle = to_iced_handle(&img);
-                self.qr_cache[i] = Some(QrData {
-                    physical_scale: phys,
-                    handle,
-                    width: w,
-                    height: h,
-                });
+                self.qr_cache[i] = Some(QrData { scale: self.scale, handle });
             }
             Err(e) => {
                 eprintln!("QRコード生成エラー: index={}, error={}", i, e);
@@ -380,23 +328,10 @@ impl QrWindow {
                     1,
                     vec![255u8, 255, 255, 255],
                 );
-                self.qr_cache[i] = Some(QrData {
-                    physical_scale: phys,
-                    handle,
-                    width: 1,
-                    height: 1,
-                });
+                self.qr_cache[i] = Some(QrData { scale: self.scale, handle });
             }
         }
     }
-}
-
-/// 論理スケール × DPI → 整数物理スケール
-/// 例: scale=2, dpi=1.25 → ceil(2.5) = 3
-/// 例: scale=2, dpi=1.5  → ceil(3.0) = 3
-/// 例: scale=2, dpi=1.0  → ceil(2.0) = 2
-fn physical_scale(scale: u32, dpi: f32) -> u32 {
-    ((scale as f32 * dpi).ceil() as u32).max(1)
 }
 
 #[cfg(test)]
