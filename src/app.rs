@@ -1,10 +1,19 @@
 use crate::ui::{decode_panel::DecodePanel, encode_panel::EncodePanel};
-use eframe::egui;
+use iced::widget::{button, column, container, horizontal_rule, row, text};
+use iced::{Element, Length, Subscription};
 
-#[derive(PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Tab {
     Encode,
     Decode,
+}
+
+#[derive(Debug, Clone)]
+pub enum Message {
+    TabSelected(Tab),
+    Encode(crate::ui::encode_panel::EncodeMessage),
+    Decode(crate::ui::decode_panel::DecodeMessage),
+    FileDropped(Vec<std::path::PathBuf>),
 }
 
 pub struct App {
@@ -13,15 +22,8 @@ pub struct App {
     pub decode_panel: DecodePanel,
 }
 
-impl App {
-    pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
-        setup_fonts(&cc.egui_ctx);
-
-        // ID重複警告を無効化
-        cc.egui_ctx.options_mut(|o| {
-            o.warn_on_id_clash = false;
-        });
-
+impl Default for App {
+    fn default() -> Self {
         Self {
             current_tab: Tab::Encode,
             encode_panel: EncodePanel::default(),
@@ -30,80 +32,87 @@ impl App {
     }
 }
 
-fn setup_fonts(ctx: &egui::Context) {
-    let mut fonts = egui::FontDefinitions::default();
-
-    // システムフォントから日本語対応フォントを探して読み込む
-    let candidates = [
-        // Windows
-        r"C:\Windows\Fonts\msgothic.ttc",
-        r"C:\Windows\Fonts\meiryo.ttc",
-        r"C:\Windows\Fonts\YuGothM.ttc",
-        r"C:\Windows\Fonts\NotoSansCJK-Regular.ttc",
-        // macOS
-        "/System/Library/Fonts/ヒラギノ角ゴシック W3.ttc",
-        "/System/Library/Fonts/Hiragino Sans GB.ttc",
-        "/Library/Fonts/Arial Unicode MS.ttf",
-        // Linux
-        "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
-        "/usr/share/fonts/noto-cjk/NotoSansCJKjp-Regular.otf",
-        "/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc",
-    ];
-
-    let mut loaded = false;
-    for path in &candidates {
-        if let Ok(data) = std::fs::read(path) {
-            fonts.font_data.insert(
-                "japanese".to_owned(),
-                std::sync::Arc::new(egui::FontData::from_owned(data)),
-            );
-            fonts
-                .families
-                .entry(egui::FontFamily::Proportional)
-                .or_default()
-                .insert(0, "japanese".to_owned());
-            fonts
-                .families
-                .entry(egui::FontFamily::Monospace)
-                .or_default()
-                .insert(0, "japanese".to_owned());
-            loaded = true;
-            break;
+impl App {
+    pub fn update(&mut self, message: Message) {
+        match message {
+            Message::TabSelected(tab) => {
+                self.current_tab = tab;
+            }
+            Message::Encode(msg) => {
+                self.encode_panel.update(msg);
+            }
+            Message::Decode(msg) => {
+                self.decode_panel.update(msg);
+            }
+            Message::FileDropped(paths) => {
+                for path in paths {
+                    let s = path.to_string_lossy().to_string();
+                    match self.current_tab {
+                        Tab::Encode => {
+                            self.encode_panel.update(
+                                crate::ui::encode_panel::EncodeMessage::FileDropped(s),
+                            );
+                        }
+                        Tab::Decode => {
+                            self.decode_panel.update(
+                                crate::ui::decode_panel::DecodeMessage::FileDropped(s),
+                            );
+                        }
+                    }
+                }
+            }
         }
     }
 
-    if !loaded {
-        eprintln!("警告: 日本語フォントが見つかりませんでした。");
+    pub fn subscription(&self) -> Subscription<Message> {
+        iced::event::listen_with(|event, _status, _id| match event {
+            iced::Event::Window(iced::window::Event::FileDropped(path)) => {
+                Some(Message::FileDropped(vec![path]))
+            }
+            _ => None,
+        })
     }
 
-    ctx.set_fonts(fonts);
+    pub fn view(&self) -> Element<Message> {
+        let tab_bar = row![
+            tab_button("QRコード生成", Tab::Encode, &self.current_tab),
+            tab_button("データ復元", Tab::Decode, &self.current_tab),
+        ]
+        .spacing(4)
+        .padding(8);
+
+        let content: Element<Message> = match self.current_tab {
+            Tab::Encode => self.encode_panel.view().map(Message::Encode),
+            Tab::Decode => self.decode_panel.view().map(Message::Decode),
+        };
+
+        let body = column![
+            tab_bar,
+            horizontal_rule(1),
+            container(content)
+                .width(Length::Fill)
+                .height(Length::Fill)
+                .padding(12),
+        ]
+        .width(Length::Fill)
+        .height(Length::Fill);
+
+        container(body).width(Length::Fill).height(Length::Fill).into()
+    }
 }
 
-impl eframe::App for App {
-    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        egui::TopBottomPanel::top("tab_bar").show(ctx, |ui| {
-            ui.horizontal(|ui| {
-                ui.selectable_value(
-                    &mut self.current_tab,
-                    Tab::Encode,
-                    "QRコード生成",
-                );
-                ui.selectable_value(
-                    &mut self.current_tab,
-                    Tab::Decode,
-                    "データ復元",
-                );
-            });
-        });
-
-        egui::CentralPanel::default().show(ctx, |ui| match self.current_tab {
-            Tab::Encode => self.encode_panel.show(ctx, ui),
-            Tab::Decode => self.decode_panel.show(ctx, ui),
-        });
-
-        // QRコード表示ウィンドウの更新（通常のWindow）
-        if let Some(ref mut qr_win) = self.encode_panel.qr_window {
-            qr_win.show(ctx);
-        }
+fn tab_button<'a>(
+    label: &'a str,
+    tab: Tab,
+    current: &Tab,
+) -> Element<'a, Message> {
+    let is_active = &tab == current;
+    let btn = button(text(label).size(14));
+    if is_active {
+        btn.style(button::primary)
+    } else {
+        btn.style(button::secondary)
     }
+    .on_press(Message::TabSelected(tab))
+    .into()
 }
