@@ -125,7 +125,7 @@ impl QrWindow {
         }
     }
 
-    pub fn view(&self) -> Element<QrWindowMessage> {
+    pub fn view(&self) -> Element<'_, QrWindowMessage> {
         let header = row![
             button(text("✕ 閉じる").size(13))
                 .on_press(QrWindowMessage::Close)
@@ -171,7 +171,7 @@ impl QrWindow {
             .into()
     }
 
-    fn view_controls(&self) -> Element<QrWindowMessage> {
+    fn view_controls(&self) -> Element<'_, QrWindowMessage> {
         let can_prev = self.page > 0;
         let can_next = self.page + 1 < self.total_pages();
 
@@ -227,7 +227,7 @@ impl QrWindow {
         .into()
     }
 
-    fn view_qr_grid(&self) -> Element<QrWindowMessage> {
+    fn view_qr_grid(&self) -> Element<'_, QrWindowMessage> {
         let range = self.page_range();
         let indices: Vec<usize> = range.collect();
 

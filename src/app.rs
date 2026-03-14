@@ -110,7 +110,7 @@ impl App {
         })
     }
 
-    pub fn view(&self) -> Element<Message> {
+    pub fn view(&self) -> Element<'_, Message> {
         // QRコード表示中は画面全体をQRビューアに明け渡す
         if let Some(ref w) = self.encode_panel.qr_window {
             return container(

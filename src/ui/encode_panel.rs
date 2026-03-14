@@ -96,7 +96,7 @@ impl EncodePanel {
         }
     }
 
-    pub fn view(&self) -> Element<EncodeMessage> {
+    pub fn view(&self) -> Element<'_, EncodeMessage> {
         let mode_row = row![
             text("入力モード:").size(14),
             mode_radio("ファイル", InputMode::File, &self.input_mode),
@@ -167,7 +167,7 @@ impl EncodePanel {
         scrollable(container(content).padding(8).width(Length::Fill)).into()
     }
 
-    fn view_file_input(&self) -> Element<EncodeMessage> {
+    fn view_file_input(&self) -> Element<'_, EncodeMessage> {
         let path_row = row![
             text_input(
                 "絶対パス、相対パス、またはドラッグ&ドロップ",
@@ -185,7 +185,7 @@ impl EncodePanel {
         column![text("ファイルパス:").size(14), path_row].spacing(6).into()
     }
 
-    fn view_text_input(&self) -> Element<EncodeMessage> {
+    fn view_text_input(&self) -> Element<'_, EncodeMessage> {
         column![
             text("テキスト入力:").size(14),
             text_input("ここにテキストを入力してください", &self.direct_text,)

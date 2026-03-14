@@ -55,7 +55,7 @@ pub struct DecodePanel {
     pub status_msg: Option<String>,
     pub error_msg: Option<String>,
     /// テキスト選択・コピー用エディタコンテンツ（読み取り専用で使用）
-    decoded_content: text_editor::Content,
+    pub decoded_content: text_editor::Content,
 }
 
 impl Default for DecodePanel {
@@ -140,7 +140,7 @@ impl DecodePanel {
         }
     }
 
-    pub fn view(&self) -> Element<DecodeMessage> {
+    pub fn view(&self) -> Element<'_, DecodeMessage> {
         // ── 入力ファイル指定 ──
         let file_input_row = row![
             text_input(
@@ -324,7 +324,7 @@ impl DecodePanel {
         scrollable(container(content).padding(8).width(Length::Fill)).into()
     }
 
-    fn view_entry_card(&self, hash: &str) -> Element<DecodeMessage> {
+    fn view_entry_card(&self, hash: &str) -> Element<'_, DecodeMessage> {
         let entry = &self.entries[hash];
         let complete = entry.is_complete();
         let missing = entry.missing_indices();
@@ -477,11 +477,10 @@ impl DecodePanel {
     fn resolve_output_path(&self, filename: &str) -> PathBuf {
         match &self.output_dir {
             OutputDir::SameAsInput => {
-                if let Some(first) = self.input_files.first() {
-                    if let Some(parent) = std::path::Path::new(first).parent()
-                    {
-                        return parent.join(filename);
-                    }
+                if let Some(first) = self.input_files.first()
+                    && let Some(parent) = std::path::Path::new(first).parent()
+                {
+                    return parent.join(filename);
                 }
                 PathBuf::from(filename)
             }
