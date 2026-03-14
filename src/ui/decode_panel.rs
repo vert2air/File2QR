@@ -412,6 +412,11 @@ impl DecodePanel {
     }
 
     fn decode_selected(&mut self) {
+        // 選択なしは何もしない
+        if self.selected_hashes.is_empty() {
+            return;
+        }
+
         self.status_msg = None;
         self.error_msg = None;
         self.decoded_text = None;
