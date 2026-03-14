@@ -34,18 +34,11 @@ pub struct EncodePanel {
     pub qr_window: Option<QrWindow>,
     pub error_msg: Option<String>,
     ec_combo_state: combo_box::State<EcLevel>,
-    /// QrWindow 生成時に渡す DPI スケール
-    /// FILE2QR_DPI_SCALE 環境変数で設定（例: 1.25 = 125%）
-    dpi_scale: f32,
 }
 
 impl Default for EncodePanel {
     fn default() -> Self {
         let levels: Vec<EcLevel> = EcLevel::all().to_vec();
-        let dpi_scale = std::env::var("FILE2QR_DPI_SCALE")
-            .ok()
-            .and_then(|s| s.parse::<f32>().ok())
-            .unwrap_or(1.0);
         Self {
             input_mode: InputMode::File,
             file_path: String::new(),
@@ -55,7 +48,6 @@ impl Default for EncodePanel {
             qr_window: None,
             error_msg: None,
             ec_combo_state: combo_box::State::new(levels),
-            dpi_scale,
         }
     }
 }
@@ -259,11 +251,8 @@ impl EncodePanel {
 
         match result {
             Ok(res) => {
-                self.qr_window = Some(QrWindow::new(
-                    res.fragments,
-                    self.ec_level,
-                    self.dpi_scale,
-                ));
+                self.qr_window =
+                    Some(QrWindow::new(res.fragments, self.ec_level));
             }
             Err(e) => {
                 self.error_msg = Some(e);
