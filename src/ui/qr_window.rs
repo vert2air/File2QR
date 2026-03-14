@@ -1,5 +1,6 @@
 use crate::encode::EcLevel;
 use crate::encode::fragment::{generate_qr_image, to_iced_handle};
+use iced::widget::scrollable::{Direction, Scrollbar};
 use iced::widget::{
     button, column, container, horizontal_rule, image as img_widget, row,
     scrollable, text,
@@ -143,20 +144,30 @@ impl QrWindow {
         let controls = self.view_controls();
         let grid = self.view_qr_grid();
 
+        // 縦横両方向スクロール可能なグリッド領域
+        let scroll_area = scrollable(container(grid).padding(8))
+            .direction(Direction::Both {
+                vertical: Scrollbar::new(),
+                horizontal: Scrollbar::new(),
+            })
+            .width(Length::Fill)
+            .height(Length::Fill);
+
         let body = column![
             header,
             horizontal_rule(1),
             controls,
             horizontal_rule(1),
-            scrollable(grid),
+            scroll_area,
         ]
         .spacing(8)
-        .width(Length::Fill);
+        .width(Length::Fill)
+        .height(Length::Fill);
 
         container(body)
             .padding(10)
             .width(Length::Fill)
-            .style(container::bordered_box)
+            .height(Length::Fill)
             .into()
     }
 
@@ -238,9 +249,6 @@ impl QrWindow {
 
                 let cell: Element<QrWindowMessage> =
                     if let Some(ref data) = self.qr_cache[qr_idx] {
-                        // ContentFit::None = 拡大縮小なし、画像1px = 論理1px
-                        // generate_qr_image() で scale px/module の整数画像を生成済み
-                        // iced はそれをそのまま描画 → ドット幅が常に均一
                         column![
                             img_widget(data.handle.clone())
                                 .content_fit(ContentFit::None)
