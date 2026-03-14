@@ -1,12 +1,28 @@
 use crate::encode::{self, EcLevel, EncodeInput};
-use crate::ui::qr_window::QrWindow;
-use eframe::egui;
+use crate::ui::qr_window::{QrWindow, QrWindowMessage};
+use iced::widget::{
+    button, checkbox, column, combo_box, container, horizontal_rule, row,
+    scrollable, text, text_input,
+};
+use iced::{Element, Length};
 
-/// 入力モード
-#[derive(PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum InputMode {
     File,
     DirectText,
+}
+
+#[derive(Debug, Clone)]
+pub enum EncodeMessage {
+    InputModeChanged(InputMode),
+    FilePathChanged(String),
+    FilePickRequested,
+    FileDropped(String),
+    DirectTextChanged(String),
+    CompressToggled(bool),
+    EcLevelSelected(EcLevel),
+    GeneratePressed,
+    QrWindow(QrWindowMessage),
 }
 
 pub struct EncodePanel {
@@ -15,16 +31,21 @@ pub struct EncodePanel {
     pub direct_text: String,
     pub compress: bool,
     pub ec_level: EcLevel,
-
-    // QRウィンドウ状態
     pub qr_window: Option<QrWindow>,
-
-    // エラーメッセージ
     pub error_msg: Option<String>,
+    ec_combo_state: combo_box::State<EcLevel>,
+    /// QrWindow 生成時に渡す DPI スケール
+    /// FILE2QR_DPI_SCALE 環境変数で設定（例: 1.25 = 125%）
+    dpi_scale: f32,
 }
 
 impl Default for EncodePanel {
     fn default() -> Self {
+        let levels: Vec<EcLevel> = EcLevel::all().to_vec();
+        let dpi_scale = std::env::var("FILE2QR_DPI_SCALE")
+            .ok()
+            .and_then(|s| s.parse::<f32>().ok())
+            .unwrap_or(1.0);
         Self {
             input_mode: InputMode::File,
             file_path: String::new(),
@@ -33,134 +54,167 @@ impl Default for EncodePanel {
             ec_level: EcLevel::L,
             qr_window: None,
             error_msg: None,
+            ec_combo_state: combo_box::State::new(levels),
+            dpi_scale,
         }
     }
 }
 
 impl EncodePanel {
-    pub fn show(&mut self, ctx: &egui::Context, ui: &mut egui::Ui) {
-        // ── 入力モード選択 ──
-        ui.horizontal(|ui| {
-            ui.label("入力モード:");
-            ui.radio_value(&mut self.input_mode, InputMode::File, "ファイル");
-            ui.radio_value(
-                &mut self.input_mode,
-                InputMode::DirectText,
-                "テキスト直接入力",
-            );
-        });
-
-        ui.separator();
-
-        // ── ファイル指定 or テキスト入力 ──
-        match self.input_mode {
-            InputMode::File => {
-                self.show_file_input(ctx, ui);
+    pub fn update(&mut self, msg: EncodeMessage) {
+        match msg {
+            EncodeMessage::InputModeChanged(mode) => {
+                self.input_mode = mode;
             }
-            InputMode::DirectText => {
-                self.show_text_input(ui);
-            }
-        }
-
-        ui.separator();
-
-        // ── オプション ──
-        ui.horizontal(|ui| {
-            ui.checkbox(&mut self.compress, "xz圧縮を有効にする");
-        });
-
-        ui.horizontal(|ui| {
-            ui.label("エラー訂正レベル:");
-            egui::ComboBox::from_label("")
-                .selected_text(format!(
-                    "{} (最大 {} byte / QR)",
-                    self.ec_level.label(),
-                    self.ec_level.max_bytes()
-                ))
-                .show_ui(ui, |ui| {
-                    for &level in EcLevel::all() {
-                        let label = format!(
-                            "{} (最大 {} byte / QR)",
-                            level.label(),
-                            level.max_bytes()
-                        );
-                        ui.selectable_value(&mut self.ec_level, level, label);
-                    }
-                });
-        });
-
-        ui.separator();
-
-        // ── 生成ボタン ──
-        if ui
-            .add_sized([200.0, 36.0], egui::Button::new("🔲 QRコードを生成"))
-            .clicked()
-        {
-            self.generate(ctx);
-        }
-
-        // ── エラー表示 ──
-        if let Some(ref err) = self.error_msg {
-            ui.colored_label(egui::Color32::RED, format!("❌ {}", err));
-        }
-
-        // ── QRウィンドウの描画は app.rs で行う ──
-    }
-
-    fn show_file_input(&mut self, ctx: &egui::Context, ui: &mut egui::Ui) {
-        ui.label("ファイルパス:");
-        ui.horizontal(|ui| {
-            let response = ui.add(
-                egui::TextEdit::singleline(&mut self.file_path)
-                    .hint_text("絶対パス、相対パス、またはドラッグ&ドロップ")
-                    .desired_width(500.0),
-            );
-
-            // ドラッグ&ドロップ
-            if response.hovered() {
-                ctx.input(|i| {
-                    if let Some(path) = i.raw.dropped_files.first()
-                        && let Some(p) = &path.path
-                    {
-                        self.file_path = p.to_string_lossy().to_string();
-                    }
-                });
-            }
-
-            if ui.button("📂 ファイル選択...").clicked()
-                && let Some(path) = rfd::FileDialog::new().pick_file()
-            {
-                self.file_path = path.to_string_lossy().to_string();
-            }
-        });
-
-        // グローバルなD&Dも受け付ける
-        ctx.input(|i| {
-            if let Some(path) = i.raw.dropped_files.first()
-                && let Some(p) = &path.path
-            {
-                self.file_path = p.to_string_lossy().to_string();
+            EncodeMessage::FilePathChanged(p) => {
+                self.file_path = p;
                 self.error_msg = None;
             }
-        });
+            EncodeMessage::FilePickRequested => {
+                if let Some(path) = rfd::FileDialog::new().pick_file() {
+                    self.file_path = path.to_string_lossy().to_string();
+                    self.error_msg = None;
+                }
+            }
+            EncodeMessage::FileDropped(p) => {
+                self.file_path = p;
+                self.error_msg = None;
+            }
+            EncodeMessage::DirectTextChanged(t) => {
+                self.direct_text = t;
+                self.error_msg = None;
+            }
+            EncodeMessage::CompressToggled(v) => {
+                self.compress = v;
+            }
+            EncodeMessage::EcLevelSelected(level) => {
+                self.ec_level = level;
+            }
+            EncodeMessage::GeneratePressed => {
+                self.generate();
+            }
+            EncodeMessage::QrWindow(qr_msg) => {
+                if let Some(ref mut w) = self.qr_window {
+                    w.update(qr_msg);
+                    if !w.open {
+                        self.qr_window = None;
+                    }
+                }
+            }
+        }
     }
 
-    fn show_text_input(&mut self, ui: &mut egui::Ui) {
-        ui.label("テキスト入力:");
-        egui::ScrollArea::vertical().max_height(200.0).show(ui, |ui| {
-            ui.add(
-                egui::TextEdit::multiline(&mut self.direct_text)
-                    .desired_width(f32::INFINITY)
-                    .desired_rows(8)
-                    .hint_text("ここにテキストを入力してください"),
-            );
-        });
+    pub fn view(&self) -> Element<EncodeMessage> {
+        let mode_row = row![
+            text("入力モード:").size(14),
+            mode_radio("ファイル", InputMode::File, &self.input_mode),
+            mode_radio(
+                "テキスト直接入力",
+                InputMode::DirectText,
+                &self.input_mode
+            ),
+        ]
+        .spacing(12)
+        .align_y(iced::Alignment::Center);
+
+        let input_area: Element<EncodeMessage> = match self.input_mode {
+            InputMode::File => self.view_file_input(),
+            InputMode::DirectText => self.view_text_input(),
+        };
+
+        let ec_label = format!(
+            "{} (最大 {} byte / QR)",
+            self.ec_level.label(),
+            self.ec_level.max_bytes()
+        );
+        let options = column![
+            checkbox("xz圧縮を有効にする", self.compress)
+                .on_toggle(EncodeMessage::CompressToggled),
+            row![
+                text("エラー訂正レベル:").size(14),
+                combo_box(
+                    &self.ec_combo_state,
+                    &ec_label,
+                    Some(&self.ec_level),
+                    EncodeMessage::EcLevelSelected,
+                )
+                .width(300),
+            ]
+            .spacing(8)
+            .align_y(iced::Alignment::Center),
+        ]
+        .spacing(8);
+
+        let gen_btn = button(text("🔲 QRコードを生成").size(14))
+            .on_press(EncodeMessage::GeneratePressed)
+            .padding([8, 24]);
+
+        let error_view: Element<EncodeMessage> =
+            if let Some(ref err) = self.error_msg {
+                text(format!("❌ {}", err))
+                    .size(13)
+                    .color(iced::Color::from_rgb(0.85, 0.1, 0.1))
+                    .into()
+            } else {
+                text("").into()
+            };
+
+        let qr_area: Element<EncodeMessage> =
+            if let Some(ref w) = self.qr_window {
+                w.view().map(EncodeMessage::QrWindow)
+            } else {
+                text("").into()
+            };
+
+        let content = column![
+            mode_row,
+            horizontal_rule(1),
+            input_area,
+            horizontal_rule(1),
+            options,
+            horizontal_rule(1),
+            gen_btn,
+            error_view,
+            qr_area,
+        ]
+        .spacing(10)
+        .width(Length::Fill);
+
+        scrollable(container(content).padding(8).width(Length::Fill)).into()
     }
 
-    fn generate(&mut self, ctx: &egui::Context) {
+    fn view_file_input(&self) -> Element<EncodeMessage> {
+        let path_row = row![
+            text_input(
+                "絶対パス、相対パス、またはドラッグ&ドロップ",
+                &self.file_path,
+            )
+            .on_input(EncodeMessage::FilePathChanged)
+            .width(500),
+            button(text("📂 ファイル選択...").size(13))
+                .on_press(EncodeMessage::FilePickRequested)
+                .padding([6, 12]),
+        ]
+        .spacing(8)
+        .align_y(iced::Alignment::Center);
+
+        column![text("ファイルパス:").size(14), path_row].spacing(6).into()
+    }
+
+    fn view_text_input(&self) -> Element<EncodeMessage> {
+        column![
+            text("テキスト入力:").size(14),
+            text_input("ここにテキストを入力してください", &self.direct_text,)
+                .on_input(EncodeMessage::DirectTextChanged)
+                .width(Length::Fill),
+        ]
+        .spacing(6)
+        .into()
+    }
+
+    fn generate(&mut self) {
         self.error_msg = None;
 
-        // 入力データとファイル名を取得
         let (data, filename) = match self.input_mode {
             InputMode::File => {
                 if self.file_path.trim().is_empty() {
@@ -196,7 +250,6 @@ impl EncodePanel {
             }
         };
 
-        // エンコード実行
         let result = encode::encode(EncodeInput {
             data,
             filename,
@@ -206,13 +259,37 @@ impl EncodePanel {
 
         match result {
             Ok(res) => {
-                self.qr_window =
-                    Some(QrWindow::new(ctx, res.fragments, self.ec_level));
+                self.qr_window = Some(QrWindow::new(
+                    res.fragments,
+                    self.ec_level,
+                    self.dpi_scale,
+                ));
             }
             Err(e) => {
                 self.error_msg = Some(e);
             }
         }
+    }
+}
+
+fn mode_radio<'a>(
+    label: &'a str,
+    value: InputMode,
+    current: &InputMode,
+) -> Element<'a, EncodeMessage> {
+    iced::widget::radio(
+        label,
+        value,
+        Some(*current),
+        EncodeMessage::InputModeChanged,
+    )
+    .size(16)
+    .into()
+}
+
+impl std::fmt::Display for EcLevel {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{} (最大 {} byte / QR)", self.label(), self.max_bytes())
     }
 }
 

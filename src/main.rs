@@ -1,56 +1,61 @@
-fn main() -> eframe::Result<()> {
-    // 起動時の詳細ログを抑制（エラー/警告は表示）
+fn main() -> iced::Result {
     env_logger::Builder::from_default_env()
         .filter_level(log::LevelFilter::Info)
-        .filter_module("wgpu_hal::vulkan::instance", log::LevelFilter::Off)
-        .filter_module("wgpu_hal::gles", log::LevelFilter::Error)
-        .filter_module("wgpu_hal::dx12", log::LevelFilter::Warn)
-        .filter_module("egui_wgpu", log::LevelFilter::Warn)
         .init();
 
-    // 環境変数でレンダラーを明示的に指定可能
-    let renderer_env = std::env::var("FILE2QR_RENDERER").ok();
+    let (font_data, font_name) = find_japanese_font();
 
-    // 優先順位: 1. wgpu（広い互換性）、2. glow（OpenGL 2.0+必須）
-    let renderers_to_try = match renderer_env.as_deref() {
-        Some("glow") => vec![eframe::Renderer::Glow], // glowのみ試行
-        Some("wgpu") => vec![eframe::Renderer::Wgpu], // wgpuのみ試行
-        _ => vec![eframe::Renderer::Wgpu, eframe::Renderer::Glow], // 両方試行
-    };
+    let mut builder = iced::application(
+        "File2QR Copilot",
+        file2qr::App::update,
+        file2qr::App::view,
+    )
+    .window_size((1024.0, 768.0))
+    .subscription(file2qr::App::subscription);
 
-    let mut last_error = None;
-
-    for renderer in renderers_to_try {
-        log::info!("レンダラーを試行: {:?}", renderer);
-
-        let options = eframe::NativeOptions {
-            viewport: egui::ViewportBuilder::default()
-                .with_inner_size([1024.0, 768.0])
-                .with_min_inner_size([800.0, 600.0]),
-            renderer,
-            ..Default::default()
-        };
-
-        let result = eframe::run_native(
-            "File2QR Copilot",
-            options,
-            Box::new(|cc| Ok(Box::new(file2qr::App::new(cc)))),
-        );
-
-        match result {
-            Ok(_) => return Ok(()),
-            Err(e) => {
-                log::warn!("{:?}レンダラーでの起動に失敗: {}", renderer, e);
-                last_error = Some(e);
-                // 次のレンダラーを試行
-            }
+    if let Some(data) = font_data {
+        builder = builder.font(data);
+        if let Some(name) = font_name {
+            builder = builder.default_font(iced::Font {
+                family: iced::font::Family::Name(name),
+                weight: iced::font::Weight::Normal,
+                stretch: iced::font::Stretch::Normal,
+                style: iced::font::Style::Normal,
+            });
         }
     }
 
-    // すべて失敗
-    if let Some(err) = last_error {
-        Err(err)
-    } else {
-        panic!("利用可能なレンダラーがありません");
+    builder.run()
+}
+
+fn find_japanese_font() -> (Option<&'static [u8]>, Option<&'static str>) {
+    let candidates: &[(&str, &str)] = &[
+        (r"C:\Windows\Fonts\YuGothR.ttc", "Yu Gothic"),
+        (r"C:\Windows\Fonts\YuGothM.ttc", "Yu Gothic"),
+        (r"C:\Windows\Fonts\meiryo.ttc", "Meiryo"),
+        (r"C:\Windows\Fonts\msgothic.ttc", "MS Gothic"),
+        ("/System/Library/Fonts/ヒラギノ角ゴシック W3.ttc", "Hiragino Sans"),
+        (
+            "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
+            "Noto Sans CJK JP",
+        ),
+        (
+            "/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc",
+            "Noto Sans CJK JP",
+        ),
+    ];
+
+    for (path, family_name) in candidates {
+        if let Ok(data) = std::fs::read(path) {
+            eprintln!(
+                "日本語フォントを読み込みました: {} (family: {})",
+                path, family_name
+            );
+            let leaked: &'static [u8] = Box::leak(data.into_boxed_slice());
+            return (Some(leaked), Some(family_name));
+        }
     }
+
+    eprintln!("警告: 日本語フォントが見つかりませんでした。");
+    (None, None)
 }
