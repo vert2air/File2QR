@@ -151,13 +151,6 @@ impl EncodePanel {
                 text("").into()
             };
 
-        let qr_area: Element<EncodeMessage> =
-            if let Some(ref w) = self.qr_window {
-                w.view().map(EncodeMessage::QrWindow)
-            } else {
-                text("").into()
-            };
-
         let content = column![
             mode_row,
             horizontal_rule(1),
@@ -167,7 +160,6 @@ impl EncodePanel {
             horizontal_rule(1),
             gen_btn,
             error_view,
-            qr_area,
         ]
         .spacing(10)
         .width(Length::Fill);

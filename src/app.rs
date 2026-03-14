@@ -74,6 +74,19 @@ impl App {
     }
 
     pub fn view(&self) -> Element<Message> {
+        // QRコード表示中は画面全体をQRビューアに明け渡す
+        if let Some(ref w) = self.encode_panel.qr_window {
+            return container(
+                w.view()
+                    .map(crate::ui::encode_panel::EncodeMessage::QrWindow)
+                    .map(Message::Encode),
+            )
+            .width(Length::Fill)
+            .height(Length::Fill)
+            .into();
+        }
+
+        // 通常表示: タブバー + コンテンツ
         let tab_bar = row![
             tab_button("QRコード生成", Tab::Encode, &self.current_tab),
             tab_button("データ復元", Tab::Decode, &self.current_tab),
