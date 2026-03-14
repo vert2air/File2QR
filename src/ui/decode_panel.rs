@@ -1,7 +1,7 @@
 use crate::decode::{self, HashEntry};
 use iced::widget::{
     button, column, container, horizontal_rule, row, scrollable, text,
-    text_input,
+    text_editor, text_input,
 };
 use iced::{Element, Length};
 use std::collections::HashMap;
@@ -41,6 +41,7 @@ pub enum DecodeMessage {
     CustomDirPickRequested,
     DecodePressed,
     OpenFolderPressed,
+    TextEditorAction(text_editor::Action),
 }
 
 pub struct DecodePanel {
@@ -53,6 +54,8 @@ pub struct DecodePanel {
     pub decoded_text: Option<String>,
     pub status_msg: Option<String>,
     pub error_msg: Option<String>,
+    /// テキスト選択・コピー用エディタコンテンツ（読み取り専用で使用）
+    decoded_content: text_editor::Content,
 }
 
 impl Default for DecodePanel {
@@ -67,6 +70,7 @@ impl Default for DecodePanel {
             decoded_text: None,
             status_msg: None,
             error_msg: None,
+            decoded_content: text_editor::Content::new(),
         }
     }
 }
@@ -124,6 +128,14 @@ impl DecodePanel {
             }
             DecodeMessage::OpenFolderPressed => {
                 self.open_output_folder();
+            }
+            DecodeMessage::TextEditorAction(action) => {
+                // 読み取り専用: 選択・カーソル移動・コピーのみ許可
+                // 文字入力・削除・貼り付けは無視
+                let is_edit = matches!(action, text_editor::Action::Edit(_));
+                if !is_edit {
+                    self.decoded_content.perform(action);
+                }
             }
         }
     }
@@ -274,29 +286,20 @@ impl DecodePanel {
             };
 
         // ── テキスト復元結果 ──
-        let decoded_view: Element<DecodeMessage> = if let Some(ref decoded) =
-            self.decoded_text
-        {
-            column![
-                horizontal_rule(1),
-                text("📝 復元されたテキスト:").size(14),
-                scrollable(
-                    container(text(decoded.as_str()).size(13))
-                        .padding(8)
-                        .width(Length::Fill)
-                )
-                .height(150),
-                text(
-                    "💡 テキストをコピーするには上のテキストを選択してください"
-                )
-                .size(12)
-                .color(iced::Color::from_rgb(0.5, 0.5, 0.5)),
-            ]
-            .spacing(6)
-            .into()
-        } else {
-            text("").into()
-        };
+        let decoded_view: Element<DecodeMessage> =
+            if self.decoded_text.is_some() {
+                column![
+                    horizontal_rule(1),
+                    text("📝 復元されたテキスト:").size(14),
+                    text_editor(&self.decoded_content)
+                        .on_action(DecodeMessage::TextEditorAction)
+                        .height(200),
+                ]
+                .spacing(6)
+                .into()
+            } else {
+                text("").into()
+            };
 
         let content = column![
             text("📄 入力ファイル (複数指定可):").size(14),
@@ -429,7 +432,11 @@ impl DecodePanel {
 
                     if filename == "(direct_text)" {
                         match String::from_utf8(data) {
-                            Ok(t) => self.decoded_text = Some(t),
+                            Ok(t) => {
+                                self.decoded_content =
+                                    text_editor::Content::with_text(&t);
+                                self.decoded_text = Some(t);
+                            }
                             Err(e) => {
                                 self.error_msg =
                                     Some(format!("UTF-8変換エラー: {}", e));
