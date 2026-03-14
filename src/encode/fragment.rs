@@ -72,19 +72,17 @@ pub fn generate_qr_image(
     Ok(img)
 }
 
-/// egui で表示するための ColorImage に変換
-pub fn to_egui_image(img: &GrayImage) -> egui::ColorImage {
+/// iced で表示するための Handle に変換
+/// GrayImage → RGBA バイト列 → iced::widget::image::Handle
+pub fn to_iced_handle(img: &GrayImage) -> iced::widget::image::Handle {
     let (w, h) = img.dimensions();
-    let pixels: Vec<egui::Color32> = img
+    // iced は RGBA (4バイト/ピクセル) を期待する
+    let rgba: Vec<u8> = img
         .pixels()
-        .map(|p| {
+        .flat_map(|p| {
             let v = p[0];
-            egui::Color32::from_gray(v)
+            [v, v, v, 255u8]
         })
         .collect();
-    egui::ColorImage {
-        size: [w as usize, h as usize],
-        pixels,
-        source_size: egui::Vec2::new(w as f32, h as f32),
-    }
+    iced::widget::image::Handle::from_rgba(w, h, rgba)
 }

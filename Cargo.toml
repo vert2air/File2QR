@@ -1,6 +1,6 @@
 [package]
 name = "file2qr"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2024"
 
 [[bin]]
@@ -8,31 +8,20 @@ name = "File2QR"
 path = "src/main.rs"
 
 [dependencies]
-eframe = { version = "0.33", features = ["wgpu"] }
-egui = "0.33"
-egui_extras = "0.33"
+iced = { version = "0.13", default-features = false, features = [
+    "tiny-skia",
+    "image",
+    "tokio",
+] }
 
-# QRコード生成（qrcodegenでByteモード強制）
 qrcodegen = "1.8"
 image = "0.25"
-
-# Base64
 base64 = "0.22"
-
-# xz圧縮
 xz2 = "0.1"
-
-# ハッシュ
 sha2 = "0.10"
 hex = "0.4"
-
-# URLエンコード
 percent-encoding = "2.3"
-
-# ファイルダイアログ
-rfd = "0.17"
-
-# ログ
+rfd = "0.15"
 log = "0.4"
 env_logger = "0.11"
 
