@@ -14,6 +14,9 @@ pub enum Message {
     Encode(crate::ui::encode_panel::EncodeMessage),
     Decode(crate::ui::decode_panel::DecodeMessage),
     FileDropped(Vec<std::path::PathBuf>),
+    KeyRight,
+    KeyLeft,
+    KeySpace,
 }
 
 pub struct App {
@@ -61,6 +64,25 @@ impl App {
                     }
                 }
             }
+            // キー操作はQRウィンドウ表示中のみ有効
+            Message::KeyRight | Message::KeySpace => {
+                if self.encode_panel.qr_window.is_some() {
+                    self.encode_panel.update(
+                        crate::ui::encode_panel::EncodeMessage::QrWindow(
+                            crate::ui::qr_window::QrWindowMessage::NextPage,
+                        ),
+                    );
+                }
+            }
+            Message::KeyLeft => {
+                if self.encode_panel.qr_window.is_some() {
+                    self.encode_panel.update(
+                        crate::ui::encode_panel::EncodeMessage::QrWindow(
+                            crate::ui::qr_window::QrWindowMessage::PrevPage,
+                        ),
+                    );
+                }
+            }
         }
     }
 
@@ -69,6 +91,21 @@ impl App {
             iced::Event::Window(iced::window::Event::FileDropped(path)) => {
                 Some(Message::FileDropped(vec![path]))
             }
+            iced::Event::Keyboard(iced::keyboard::Event::KeyPressed {
+                key,
+                ..
+            }) => match key {
+                iced::keyboard::Key::Named(
+                    iced::keyboard::key::Named::ArrowRight,
+                ) => Some(Message::KeyRight),
+                iced::keyboard::Key::Named(
+                    iced::keyboard::key::Named::ArrowLeft,
+                ) => Some(Message::KeyLeft),
+                iced::keyboard::Key::Named(
+                    iced::keyboard::key::Named::Space,
+                ) => Some(Message::KeySpace),
+                _ => None,
+            },
             _ => None,
         })
     }
