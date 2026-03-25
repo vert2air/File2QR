@@ -1,10 +1,14 @@
 use crate::decode::{self, HashEntry};
-use eframe::egui;
+use iced::widget::{
+    button, column, container, horizontal_rule, row, scrollable, text,
+    text_editor, text_input,
+};
+use iced::{Element, Length};
 use std::collections::HashMap;
 use std::path::PathBuf;
 
 /// 出力先ディレクトリの選択肢
-#[derive(PartialEq, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum OutputDir {
     SameAsInput,
     Downloads,
@@ -23,27 +27,35 @@ impl OutputDir {
     }
 }
 
+/// DecodePanel が発行するメッセージ
+#[derive(Debug, Clone)]
+pub enum DecodeMessage {
+    FilePathInputChanged(String),
+    AddFilePressed,
+    FilePickRequested,
+    FileDropped(String),
+    RemoveFile(usize),
+    HashToggled(String, bool),
+    OutputDirChanged(OutputDir),
+    CustomDirChanged(String),
+    CustomDirPickRequested,
+    DecodePressed,
+    OpenFolderPressed,
+    TextEditorAction(text_editor::Action),
+}
+
 pub struct DecodePanel {
-    /// 指定された入力ファイルパスのリスト
     pub input_files: Vec<String>,
     pub file_path_input: String,
-
-    /// 解析済みのHashEntryマップ
     pub entries: HashMap<String, HashEntry>,
-
-    /// デコード対象として選択されたhash値のSet
     pub selected_hashes: std::collections::HashSet<String>,
-
-    /// 出力先ディレクトリ
     pub output_dir: OutputDir,
     pub custom_dir: String,
-
-    /// 直接テキスト出力領域
     pub decoded_text: Option<String>,
-
-    /// メッセージ
     pub status_msg: Option<String>,
     pub error_msg: Option<String>,
+    /// テキスト選択・コピー用エディタコンテンツ（読み取り専用で使用）
+    pub decoded_content: text_editor::Content,
 }
 
 impl Default for DecodePanel {
@@ -58,240 +70,316 @@ impl Default for DecodePanel {
             decoded_text: None,
             status_msg: None,
             error_msg: None,
+            decoded_content: text_editor::Content::new(),
         }
     }
 }
 
 impl DecodePanel {
-    pub fn show(&mut self, ctx: &egui::Context, ui: &mut egui::Ui) {
-        // ── 入力ファイル指定 ──
-        ui.label("📄 入力ファイル (複数指定可):");
-        ui.horizontal(|ui| {
-            ui.add(
-                egui::TextEdit::singleline(&mut self.file_path_input)
-                    .hint_text("ファイルパス（Enterで追加）")
-                    .desired_width(480.0),
-            );
-            if ui.button("追加").clicked()
-                || ui.input(|i| i.key_pressed(egui::Key::Enter))
-            {
-                self.add_file(self.file_path_input.clone());
+    pub fn update(&mut self, msg: DecodeMessage) {
+        match msg {
+            DecodeMessage::FilePathInputChanged(s) => {
+                self.file_path_input = s;
+            }
+            DecodeMessage::AddFilePressed => {
+                let p = self.file_path_input.clone();
+                self.add_file(p);
                 self.file_path_input.clear();
             }
-            if ui.button("📂 選択...").clicked()
-                && let Some(paths) = rfd::FileDialog::new().pick_files()
-            {
-                for p in paths {
-                    self.add_file(p.to_string_lossy().to_string());
+            DecodeMessage::FilePickRequested => {
+                if let Some(paths) = rfd::FileDialog::new().pick_files() {
+                    for p in paths {
+                        self.add_file(p.to_string_lossy().to_string());
+                    }
                 }
             }
-        });
-
-        // D&D対応
-        ctx.input(|i| {
-            for dropped in &i.raw.dropped_files {
-                if let Some(p) = &dropped.path {
-                    self.add_file(p.to_string_lossy().to_string());
-                }
+            DecodeMessage::FileDropped(p) => {
+                self.add_file(p);
             }
-        });
-
-        // 現在の入力ファイル一覧
-        if !self.input_files.is_empty() {
-            ui.group(|ui| {
-                ui.label("入力ファイル:");
-                let mut to_remove = None;
-                for (i, f) in self.input_files.iter().enumerate() {
-                    ui.horizontal(|ui| {
-                        if ui.small_button("✕").clicked() {
-                            to_remove = Some(i);
-                        }
-                        ui.label(f);
-                    });
-                }
-                if let Some(idx) = to_remove {
+            DecodeMessage::RemoveFile(idx) => {
+                if idx < self.input_files.len() {
                     self.input_files.remove(idx);
                     self.reparse_all();
                 }
-            });
-        }
-
-        ui.separator();
-
-        // ── 解析結果一覧 ──
-        if self.entries.is_empty() {
-            ui.label(
-                "（入力ファイルを指定するとここに解析結果が表示されます）",
-            );
-        } else {
-            ui.label("🔍 解析結果:");
-            egui::ScrollArea::vertical().max_height(220.0).show(ui, |ui| {
-                let hashes: Vec<String> =
-                    self.entries.keys().cloned().collect();
-                for hash in &hashes {
-                    let entry = &self.entries[hash];
-                    let complete = entry.is_complete();
-                    let missing = entry.missing_indices();
-
-                    ui.group(|ui| {
-                        ui.horizontal(|ui| {
-                            let mut selected =
-                                self.selected_hashes.contains(hash);
-                            let enabled = complete;
-                            ui.add_enabled(
-                                enabled,
-                                egui::Checkbox::new(&mut selected, ""),
-                            );
-                            if enabled {
-                                if selected {
-                                    self.selected_hashes.insert(hash.clone());
-                                } else {
-                                    self.selected_hashes.remove(hash);
-                                }
-                            }
-
-                            ui.label(format!("hash: {}", hash));
-                        });
-
-                        // ファイル名
-                        let fname = entry
-                            .filename
-                            .clone()
-                            .unwrap_or("(unknown)".to_string());
-                        ui.label(format!("  ファイル名: {}", fname));
-
-                        // 圧縮フラグ
-                        let compress_str = match entry.compressed {
-                            Some(true) => "ON",
-                            Some(false) => "OFF",
-                            None => "--",
-                        };
-                        ui.label(format!("  xz圧縮: {}", compress_str));
-
-                        // 不足フラグメント
-                        if missing.is_empty() {
-                            ui.colored_label(
-                                egui::Color32::GREEN,
-                                "  ✅ 全フラグメント揃っています",
-                            );
-                        } else {
-                            ui.colored_label(
-                                egui::Color32::YELLOW,
-                                format!("  ⚠ 不足フラグメント: {:?}", missing),
-                            );
-                        }
-                    });
-                }
-            });
-        }
-
-        ui.separator();
-
-        // ── 出力先ディレクトリ ──
-        ui.label("📁 出力先:");
-        ui.horizontal(|ui| {
-            for opt in [
-                OutputDir::SameAsInput,
-                OutputDir::Downloads,
-                OutputDir::CurrentDir,
-                OutputDir::Custom(self.custom_dir.clone()),
-            ] {
-                let label = opt.label();
-                let selected = matches!(
-                    (&self.output_dir, &opt),
-                    (OutputDir::SameAsInput, OutputDir::SameAsInput)
-                        | (OutputDir::Downloads, OutputDir::Downloads)
-                        | (OutputDir::CurrentDir, OutputDir::CurrentDir)
-                        | (OutputDir::Custom(_), OutputDir::Custom(_))
-                );
-                if ui.radio(selected, label).clicked() {
-                    self.output_dir = opt;
+            }
+            DecodeMessage::HashToggled(hash, checked) => {
+                if checked {
+                    self.selected_hashes.insert(hash);
+                } else {
+                    self.selected_hashes.remove(&hash);
                 }
             }
-        });
-
-        if matches!(self.output_dir, OutputDir::Custom(_)) {
-            ui.horizontal(|ui| {
-                ui.add(
-                    egui::TextEdit::singleline(&mut self.custom_dir)
-                        .hint_text("出力ディレクトリのパス")
-                        .desired_width(400.0),
-                );
-                if ui.button("📂 フォルダ選択...").clicked()
-                    && let Some(dir) = rfd::FileDialog::new().pick_folder()
-                {
+            DecodeMessage::OutputDirChanged(dir) => {
+                self.output_dir = dir;
+            }
+            DecodeMessage::CustomDirChanged(s) => {
+                self.custom_dir = s.clone();
+                self.output_dir = OutputDir::Custom(s);
+            }
+            DecodeMessage::CustomDirPickRequested => {
+                if let Some(dir) = rfd::FileDialog::new().pick_folder() {
                     self.custom_dir = dir.to_string_lossy().to_string();
                     self.output_dir =
                         OutputDir::Custom(self.custom_dir.clone());
                 }
-            });
-        }
-
-        ui.separator();
-
-        // ── デコード実行 ──
-        let can_decode = !self.selected_hashes.is_empty();
-        if ui
-            .add_enabled(
-                can_decode,
-                egui::Button::new("💾 選択したデータを復元")
-                    .min_size(egui::vec2(200.0, 36.0)),
-            )
-            .clicked()
-        {
-            self.decode_selected();
-        }
-
-        // ── ステータス/エラー ──
-        if let Some(ref msg) = self.status_msg {
-            ui.horizontal(|ui| {
-                ui.colored_label(egui::Color32::GREEN, format!("✅ {}", msg));
-
-                // ファイル復元成功時は出力フォルダを開くボタンを表示
-                if msg.contains("ファイルを復元")
-                    && ui.button("📂 出力フォルダを開く").clicked()
-                {
-                    self.open_output_folder();
+            }
+            DecodeMessage::DecodePressed => {
+                self.decode_selected();
+            }
+            DecodeMessage::OpenFolderPressed => {
+                self.open_output_folder();
+            }
+            DecodeMessage::TextEditorAction(action) => {
+                // 読み取り専用: 選択・カーソル移動・コピーのみ許可
+                // 文字入力・削除・貼り付けは無視
+                let is_edit = matches!(action, text_editor::Action::Edit(_));
+                if !is_edit {
+                    self.decoded_content.perform(action);
                 }
-            });
-        }
-        if let Some(ref err) = self.error_msg {
-            ui.colored_label(egui::Color32::RED, format!("❌ {}", err));
-        }
-
-        // ── 直接テキスト表示 ──
-        if let Some(ref text) = self.decoded_text.clone() {
-            ui.separator();
-            ui.horizontal(|ui| {
-                ui.label("📝 復元されたテキスト:");
-
-                // 全選択ボタン
-                if ui.button("📋 全選択してコピー").clicked() {
-                    ctx.copy_text(text.clone());
-                    self.status_msg =
-                        Some("クリップボードにコピーしました".to_string());
-                }
-            });
-
-            egui::ScrollArea::vertical().max_height(150.0).show(ui, |ui| {
-                ui.add(
-                    egui::TextEdit::multiline(
-                        self.decoded_text
-                            .as_mut()
-                            .unwrap_or(&mut String::new()),
-                    )
-                    .desired_width(f32::INFINITY)
-                    .interactive(true) // 選択可能に変更
-                    .desired_rows(8),
-                );
-            });
-
-            ui.label("💡 テキストをマウスで選択してCtrl+Cでコピーできます");
-            let _ = text;
+            }
         }
     }
 
-    /// ファイルを追加して即座に解析
+    pub fn view(&self) -> Element<'_, DecodeMessage> {
+        // ── 入力ファイル指定 ──
+        let file_input_row = row![
+            text_input(
+                "ファイルパス（追加ボタンで追加）",
+                &self.file_path_input,
+            )
+            .on_input(DecodeMessage::FilePathInputChanged)
+            .width(480),
+            button(text("追加").size(13))
+                .on_press(DecodeMessage::AddFilePressed)
+                .padding([6, 12]),
+            button(text("📂 選択...").size(13))
+                .on_press(DecodeMessage::FilePickRequested)
+                .padding([6, 12]),
+        ]
+        .spacing(8)
+        .align_y(iced::Alignment::Center);
+
+        // ── 入力ファイル一覧 ──
+        let file_list: Element<DecodeMessage> = if self.input_files.is_empty()
+        {
+            text("（ファイルが追加されていません）")
+                .size(13)
+                .color(iced::Color::from_rgb(0.5, 0.5, 0.5))
+                .into()
+        } else {
+            let items = self.input_files.iter().enumerate().map(|(i, f)| {
+                row![
+                    button(text("✕").size(12))
+                        .on_press(DecodeMessage::RemoveFile(i))
+                        .padding([2, 6]),
+                    text(f.as_str()).size(13),
+                ]
+                .spacing(6)
+                .align_y(iced::Alignment::Center)
+                .into()
+            });
+            column(items).spacing(4).into()
+        };
+
+        // ── 解析結果 ──
+        let entries_view: Element<DecodeMessage> = if self.entries.is_empty() {
+            text("（入力ファイルを指定するとここに解析結果が表示されます）")
+                .size(13)
+                .color(iced::Color::from_rgb(0.5, 0.5, 0.5))
+                .into()
+        } else {
+            let mut hashes: Vec<String> =
+                self.entries.keys().cloned().collect();
+            hashes.sort();
+
+            let cards: Vec<Element<DecodeMessage>> =
+                hashes.iter().map(|hash| self.view_entry_card(hash)).collect();
+
+            scrollable(column(cards).spacing(8)).height(220).into()
+        };
+
+        // ── 出力先ディレクトリ ──
+        let output_radios = column![
+            output_radio(
+                "入力ファイルと同じディレクトリ",
+                OutputDir::SameAsInput,
+                &self.output_dir,
+            ),
+            output_radio(
+                "Downloadsディレクトリ",
+                OutputDir::Downloads,
+                &self.output_dir,
+            ),
+            output_radio(
+                "カレントディレクトリ",
+                OutputDir::CurrentDir,
+                &self.output_dir,
+            ),
+            output_radio(
+                "指定ディレクトリ",
+                OutputDir::Custom(self.custom_dir.clone()),
+                &self.output_dir,
+            ),
+        ]
+        .spacing(4);
+
+        let custom_dir_row: Element<DecodeMessage> =
+            if matches!(self.output_dir, OutputDir::Custom(_)) {
+                row![
+                    text_input("出力ディレクトリのパス", &self.custom_dir,)
+                        .on_input(DecodeMessage::CustomDirChanged)
+                        .width(400),
+                    button(text("📂 フォルダ選択...").size(13))
+                        .on_press(DecodeMessage::CustomDirPickRequested)
+                        .padding([6, 12]),
+                ]
+                .spacing(8)
+                .align_y(iced::Alignment::Center)
+                .into()
+            } else {
+                text("").into()
+            };
+
+        // ── デコードボタン ──
+        let can_decode = !self.selected_hashes.is_empty();
+        let decode_btn = if can_decode {
+            button(text("💾 選択したデータを復元").size(14))
+                .on_press(DecodeMessage::DecodePressed)
+                .padding([8, 24])
+        } else {
+            button(text("💾 選択したデータを復元").size(14)).padding([8, 24])
+        };
+
+        // ── ステータス/エラー ──
+        let status_view: Element<DecodeMessage> =
+            if let Some(ref msg) = self.status_msg {
+                let open_btn: Element<DecodeMessage> =
+                    if msg.contains("ファイルを復元") {
+                        button(text("📂 出力フォルダを開く").size(13))
+                            .on_press(DecodeMessage::OpenFolderPressed)
+                            .padding([4, 10])
+                            .into()
+                    } else {
+                        text("").into()
+                    };
+                row![
+                    text(format!("✅ {}", msg))
+                        .size(13)
+                        .color(iced::Color::from_rgb(0.1, 0.6, 0.2)),
+                    open_btn,
+                ]
+                .spacing(8)
+                .align_y(iced::Alignment::Center)
+                .into()
+            } else {
+                text("").into()
+            };
+
+        let error_view: Element<DecodeMessage> =
+            if let Some(ref err) = self.error_msg {
+                text(format!("❌ {}", err))
+                    .size(13)
+                    .color(iced::Color::from_rgb(0.85, 0.1, 0.1))
+                    .into()
+            } else {
+                text("").into()
+            };
+
+        // ── テキスト復元結果 ──
+        let decoded_view: Element<DecodeMessage> =
+            if self.decoded_text.is_some() {
+                column![
+                    horizontal_rule(1),
+                    text("📝 復元されたテキスト:").size(14),
+                    text_editor(&self.decoded_content)
+                        .on_action(DecodeMessage::TextEditorAction)
+                        .height(200),
+                ]
+                .spacing(6)
+                .into()
+            } else {
+                text("").into()
+            };
+
+        let content = column![
+            text("📄 入力ファイル (複数指定可):").size(14),
+            file_input_row,
+            file_list,
+            horizontal_rule(1),
+            text("🔍 解析結果:").size(14),
+            entries_view,
+            horizontal_rule(1),
+            text("📁 出力先:").size(14),
+            output_radios,
+            custom_dir_row,
+            horizontal_rule(1),
+            decode_btn,
+            status_view,
+            error_view,
+            decoded_view,
+        ]
+        .spacing(10)
+        .width(Length::Fill);
+
+        scrollable(container(content).padding(8).width(Length::Fill)).into()
+    }
+
+    fn view_entry_card(&self, hash: &str) -> Element<'_, DecodeMessage> {
+        let entry = &self.entries[hash];
+        let complete = entry.is_complete();
+        let missing = entry.missing_indices();
+
+        let selected = self.selected_hashes.contains(hash);
+
+        let check: Element<DecodeMessage> = if complete {
+            iced::widget::checkbox("", selected)
+                .on_toggle({
+                    let h = hash.to_string();
+                    move |v| DecodeMessage::HashToggled(h.clone(), v)
+                })
+                .into()
+        } else {
+            // 未完成は無効チェックボックス（操作不可）
+            iced::widget::checkbox("", false).into()
+        };
+
+        let fname =
+            entry.filename.clone().unwrap_or_else(|| "(unknown)".to_string());
+        let compress_str = match entry.compressed {
+            Some(true) => "ON",
+            Some(false) => "OFF",
+            None => "--",
+        };
+
+        let status: Element<DecodeMessage> = if missing.is_empty() {
+            text("✅ 全フラグメント揃っています")
+                .size(13)
+                .color(iced::Color::from_rgb(0.1, 0.6, 0.2))
+                .into()
+        } else {
+            text(format!("⚠ 不足フラグメント: {:?}", missing))
+                .size(13)
+                .color(iced::Color::from_rgb(0.8, 0.6, 0.0))
+                .into()
+        };
+
+        let card_content = column![
+            row![check, text(format!("hash: {}", hash)).size(13),]
+                .spacing(6)
+                .align_y(iced::Alignment::Center),
+            text(format!("  ファイル名: {}", fname)).size(13),
+            text(format!("  xz圧縮: {}", compress_str)).size(13),
+            status,
+        ]
+        .spacing(3);
+
+        container(card_content)
+            .padding(8)
+            .width(Length::Fill)
+            .style(container::bordered_box)
+            .into()
+    }
+
     fn add_file(&mut self, path: String) {
         if path.is_empty() || self.input_files.contains(&path) {
             return;
@@ -300,7 +388,6 @@ impl DecodePanel {
         self.reparse_all();
     }
 
-    /// 全入力ファイルを再解析
     fn reparse_all(&mut self) {
         self.entries.clear();
         self.error_msg = None;
@@ -324,8 +411,12 @@ impl DecodePanel {
         self.entries = decode::parse_lines(&refs);
     }
 
-    /// 選択されたhashのデータを復元・出力
     fn decode_selected(&mut self) {
+        // 選択なしは何もしない
+        if self.selected_hashes.is_empty() {
+            return;
+        }
+
         self.status_msg = None;
         self.error_msg = None;
         self.decoded_text = None;
@@ -339,20 +430,24 @@ impl DecodePanel {
 
             match decode::reconstruct(entry) {
                 Ok(data) => {
-                    let filename =
-                        entry.filename.clone().unwrap_or("output".to_string());
+                    let filename = entry
+                        .filename
+                        .clone()
+                        .unwrap_or_else(|| "output".to_string());
 
                     if filename == "(direct_text)" {
-                        // テキスト領域に表示
                         match String::from_utf8(data) {
-                            Ok(text) => self.decoded_text = Some(text),
+                            Ok(t) => {
+                                self.decoded_content =
+                                    text_editor::Content::with_text(&t);
+                                self.decoded_text = Some(t);
+                            }
                             Err(e) => {
                                 self.error_msg =
                                     Some(format!("UTF-8変換エラー: {}", e));
                             }
                         }
                     } else {
-                        // ファイルに出力
                         let out_path = self.resolve_output_path(&filename);
                         if let Err(e) = std::fs::write(&out_path, &data) {
                             self.error_msg = Some(format!(
@@ -387,7 +482,6 @@ impl DecodePanel {
     fn resolve_output_path(&self, filename: &str) -> PathBuf {
         match &self.output_dir {
             OutputDir::SameAsInput => {
-                // 最初の入力ファイルのディレクトリを使う
                 if let Some(first) = self.input_files.first()
                     && let Some(parent) = std::path::Path::new(first).parent()
                 {
@@ -405,7 +499,6 @@ impl DecodePanel {
         }
     }
 
-    /// 出力フォルダをシステムのファイルマネージャーで開く
     fn open_output_folder(&self) {
         let folder_path = match &self.output_dir {
             OutputDir::SameAsInput => {
@@ -430,7 +523,6 @@ impl DecodePanel {
             OutputDir::Custom(dir) => PathBuf::from(dir),
         };
 
-        // プラットフォーム別にフォルダを開く
         #[cfg(target_os = "windows")]
         {
             let _ = std::process::Command::new("explorer")
@@ -448,6 +540,31 @@ impl DecodePanel {
                 .arg(folder_path)
                 .spawn();
         }
+    }
+}
+
+fn output_radio<'a>(
+    label: &'a str,
+    value: OutputDir,
+    current: &OutputDir,
+) -> Element<'a, DecodeMessage> {
+    // OutputDir は Custom(String) を含むため Copy を実装できず
+    // iced::widget::radio が使えないので、button で代替する
+    let is_selected = matches!(
+        (current, &value),
+        (OutputDir::SameAsInput, OutputDir::SameAsInput)
+            | (OutputDir::Downloads, OutputDir::Downloads)
+            | (OutputDir::CurrentDir, OutputDir::CurrentDir)
+            | (OutputDir::Custom(_), OutputDir::Custom(_))
+    );
+    let prefix = if is_selected { "● " } else { "○ " };
+    let btn = button(text(format!("{}{}", prefix, label)).size(13))
+        .on_press(DecodeMessage::OutputDirChanged(value))
+        .padding([3, 10]);
+    if is_selected {
+        btn.style(button::primary).into()
+    } else {
+        btn.style(button::secondary).into()
     }
 }
 
