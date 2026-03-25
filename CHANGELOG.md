@@ -5,6 +5,45 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+## [0.3.0] - 2026-03-25
+
+### Changed
+- **GUIフレームワークをeguiからicedに移行**
+  - より安定したレンダリング
+  - OpenGLサポートがない環境でも動作（tiny-skiaバックエンド）
+  - 仮想環境での互換性向上
+- 依存関係の更新
+  - iced 0.13（tiny-skia、CPU レンダリング）
+  - image: 0.25.9 → 0.25.10
+  - rfd: 0.17.2 → 0.15（icedとの互換性のため）
+
+### Added
+- QRコード全画面表示機能
+  - QRコードウィンドウを全画面で表示可能
+  - 大画面での視認性向上
+
+### Fixed
+- QRコードのドット形状を正方形に近づけるよう改善
+  - より読み取りやすいQRコード生成
+- 矢印キーでQRグループが切り替わらない問題を修正
+  - キーボードナビゲーションの改善
+- 復元したテキストをクリップボードに貼り付けできない問題を修正
+  - テキスト選択とコピー機能の安定性向上
+- テストで見つかったバグを修正
+  - テストコードの更新と改善
+
+### Technical Details
+- eframe/eguiからicedへの完全移行
+  - 約2,800行の変更（追加/削除）
+  - すべてのUIコンポーネントをiced形式に書き換え
+  - テストコードも全面的に更新
+- tiny-skiaレンダラーを採用
+  - CPUベースのソフトウェアレンダリング
+  - OpenGLやVulkanが不要
+  - 仮想マシンや古いハードウェアでも確実に動作
+
 ## [0.2.0] - 2026-03-12
 
 ### Added
@@ -55,5 +94,7 @@ Initial release.
 - CI/CD（GitHub Actions）
 - 包括的なテストスイート（48テスト）
 
-[Unreleased]: https://github.com/vert2air/File2QR/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/vert2air/File2QR/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/vert2air/File2QR/compare/v0.2.0...v0.3.0
+[0.2.0]: https://github.com/vert2air/File2QR/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/vert2air/File2QR/releases/tag/v0.1.0
