@@ -7,6 +7,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-03-29
+
+### Changed
+- **QRコード容量を理論値最大まで拡張**
+  - 5%の安全マージンを削除し、理論値通りの容量を使用
+
+### Added
+- **Windowsでのコンソールウィンドウ非表示**
+  - 実行ファイルをダブルクリック起動時にコンソール画面が表示されない
+
+### Details
+
+#### QRコード容量の変更
+
+| レベル | 変更前 | 変更後 | 増加量 | 増加率 |
+|--------|--------|--------|--------|--------|
+| L      | 2800   | 2953   | +153   | +5.5%  |
+| M      | 2200   | 2331   | +131   | +6.0%  |
+| Q      | 1580   | 1663   | +83    | +5.3%  |
+| H      | 1210   | 1272   | +62    | +5.1%  |
+
+#### 実質的な利用可能容量（qr_cap = max_bytes - 13）
+
+| レベル | 変更前 | 変更後 | 増加量 |
+|--------|--------|--------|--------|
+| L      | 2787   | 2940   | +153   |
+| M      | 2187   | 2318   | +131   |
+| Q      | 1567   | 1650   | +83    |
+| H      | 1197   | 1259   | +62    |
+
 ## [0.3.0] - 2026-03-25
 
 ### Changed
@@ -94,7 +124,8 @@ Initial release.
 - CI/CD（GitHub Actions）
 - 包括的なテストスイート（48テスト）
 
-[Unreleased]: https://github.com/vert2air/File2QR/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/vert2air/File2QR/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/vert2air/File2QR/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/vert2air/File2QR/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/vert2air/File2QR/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/vert2air/File2QR/releases/tag/v0.1.0
