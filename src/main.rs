@@ -1,3 +1,5 @@
+#![cfg_attr(target_os = "windows", windows_subsystem = "windows")]
+
 fn main() -> iced::Result {
     env_logger::Builder::from_default_env()
         .filter_level(log::LevelFilter::Info)

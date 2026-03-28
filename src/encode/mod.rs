@@ -27,15 +27,14 @@ impl EcLevel {
         }
     }
 
-    /// 仕様書記載の最大データ容量 (byte) - 実測に基づく安全値
+    /// 仕様書記載の最大データ容量 (byte) - qrcodegenの理論値
     pub fn max_bytes(&self) -> usize {
-        // qrcodeクレートの実際の制限は理論値より若干小さいため、
-        // 安全マージンを確保（約5%減）
+        // qrcodegenライブラリに移行したため、理論値通りの容量を使用可能
         match self {
-            EcLevel::L => 2800, // 理論値 2953
-            EcLevel::M => 2200, // 理論値 2331
-            EcLevel::Q => 1580, // 理論値 1663
-            EcLevel::H => 1210, // 理論値 1272
+            EcLevel::L => 2953, // QR Version 40, ECC Level L
+            EcLevel::M => 2331, // QR Version 40, ECC Level M
+            EcLevel::Q => 1663, // QR Version 40, ECC Level Q
+            EcLevel::H => 1272, // QR Version 40, ECC Level H
         }
     }
 
