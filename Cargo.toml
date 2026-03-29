@@ -8,7 +8,7 @@ name = "File2QR"
 path = "src/main.rs"
 
 [dependencies]
-iced = { version = "0.13", default-features = false, features = [
+iced = { version = "0.14", default-features = false, features = [
     "tiny-skia",
     "image",
     "tokio",
